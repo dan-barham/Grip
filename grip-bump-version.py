@@ -13,10 +13,10 @@ assert part in ('major','minor','patch'), "Usage: bump-version.py [major|minor|p
 today = datetime.date.today().isoformat()
 
 # ── Bump HTML version ────────────────────────────────────────
-f = pathlib.Path('grip-index.html')
+f = pathlib.Path('index.html')
 c = f.read_text()
 m = re.search(r"const GRIP_VERSION = '(\d+)\.(\d+)\.(\d+)';", c)
-assert m, "GRIP_VERSION not found in grip-index.html"
+assert m, "GRIP_VERSION not found in index.html"
 
 major, minor, patch = int(m.group(1)), int(m.group(2)), int(m.group(3))
 old = f"{major}.{minor}.{patch}"
