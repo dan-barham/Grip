@@ -17,4 +17,5 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /home/addc5vqc95ni/public_html/grip
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
