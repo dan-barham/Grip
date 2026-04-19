@@ -2410,9 +2410,9 @@ td.ta .btn+.btn{margin-left:.25rem;}
 // ── API URL ──────────────────────────────────────────────
 // API URL — relative so it works on any server (localhost, staging, production)
 const API = (()=>{
-  const s = document.currentScript?.src || window.location.href;
-  const base = s.substring(0, s.lastIndexOf('/') + 1);
-  return base + 'api.php';
+  const href = window.location.href;
+  const base = href.substring(0, href.lastIndexOf('/') + 1);
+  return base + 'grip-api.php';
 })();
 const CATS = ['Camera','Lens','Light','Grip','Audio','Power','Support','Cable','Other'];
 
@@ -2464,8 +2464,8 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.57';
-const GRIP_BUILD_DATE = '2026-04-17';
+const GRIP_VERSION = '1.0.59';
+const GRIP_BUILD_DATE = '2026-04-19';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities

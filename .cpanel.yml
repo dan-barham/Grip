@@ -4,6 +4,6 @@ deployment:
     - export DEPLOYPATH=$HOME/public_html/grip/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp index.html ${DEPLOYPATH}grip-index.html
-    - /bin/cp api.php ${DEPLOYPATH}grip-api.php
+    - /bin/cp grip-api.php ${DEPLOYPATH}grip-api.php
     - /bin/cp grip-version.php ${DEPLOYPATH}grip-version.php
     - /bin/cp schema.sql ${DEPLOYPATH}schema.sql
