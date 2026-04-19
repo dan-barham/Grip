@@ -19,7 +19,7 @@ jobs:
           password: ${{ secrets.SSH_PASS }}
           port: ${{ secrets.SSH_PORT }}
           uploads: |
-            ./index.html => /home/addc5vqc95ni/public_html/grip/
-            ./grip-api.php => /home/addc5vqc95ni/public_html/grip/
-            ./grip-version.php => /home/addc5vqc95ni/public_html/grip/
-            ./schema.sql => /home/addc5vqc95ni/public_html/grip/
+            ./index.html => ./public_html/grip/
+            ./grip-api.php => ./public_html/grip/
+            ./grip-version.php => ./public_html/grip/
+            ./schema.sql => ./public_html/grip/
