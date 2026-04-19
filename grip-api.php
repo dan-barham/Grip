@@ -29,7 +29,7 @@ if (($_GET['r'] ?? '') === 'diag') {
     exit;
 }
 
-require_once __DIR__ . '/grip-config.php';
+require_once __DIR__ . '/config.php';
 if(file_exists(__DIR__.'/grip-version.php')) require_once __DIR__ . '/grip-version.php';
 if(!defined('GRIP_VERSION')) define('GRIP_VERSION','1.0.34');
 if(file_exists(__DIR__.'/grip-pdf.php')) require_once __DIR__ . '/grip-pdf.php';
