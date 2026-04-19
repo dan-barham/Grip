@@ -8,14 +8,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Deploy files via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
           port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd /home/addc5vqc95ni/public_html/grip
-            git fetch origin main
-            git reset --hard origin/main
+          source: "index.html,grip-api.php,grip-version.php,schema.sql"
+          target: /home/addc5vqc95ni/public_html/grip/
+          overwrite: true
