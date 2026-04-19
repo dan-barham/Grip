@@ -8,20 +8,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH curl
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -e
-            DIR=/home/addc5vqc95ni/public_html/grip
-            RAW=https://raw.githubusercontent.com/dan-barham/Grip/main
-            echo "Deploying to $DIR"
-            curl -fsSL "$RAW/index.html"        -o "$DIR/index.html"
-            curl -fsSL "$RAW/grip-api.php"      -o "$DIR/grip-api.php"
-            curl -fsSL "$RAW/grip-version.php"  -o "$DIR/grip-version.php"
-            curl -fsSL "$RAW/schema.sql"        -o "$DIR/schema.sql"
-            echo "Done. Version: $(grep -o \"GRIP_VERSION = '[^']*'\" $DIR/grip-version.php)"
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Upload via SFTP
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PASS: ${{ secrets.SSH_PASS }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          lftp -u "$USER,$PASS" -p "$PORT" sftp://"$HOST" <<EOF
+          set sftp:auto-confirm yes
+          cd /home/addc5vqc95ni/public_html/grip
+          put -O . index.html
+          put -O . grip-api.php
+          put -O . grip-version.php
+          put -O . schema.sql
+          bye
+          EOF
