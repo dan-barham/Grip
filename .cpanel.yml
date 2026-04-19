@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - /bin/cp index.html /home/addc5vqc95ni/public_html/grip/grip-index.html
     - /bin/cp grip-api.php /home/addc5vqc95ni/public_html/grip/grip-api.php
     - /bin/cp grip-version.php /home/addc5vqc95ni/public_html/grip/grip-version.php
     - /bin/cp schema.sql /home/addc5vqc95ni/public_html/grip/schema.sql
+    - /bin/rm -f /home/addc5vqc95ni/public_html/grip/grip-index.html
