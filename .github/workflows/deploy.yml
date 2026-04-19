@@ -11,15 +11,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Stage files for upload
+        run: |
+          mkdir -p _deploy
+          cp index.html grip-api.php grip-version.php schema.sql _deploy/
+          ls -la _deploy/
+
       - name: Upload via SFTP
-        uses: Dylan700/sftp-upload-action@latest
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           server: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
           port: ${{ secrets.SSH_PORT }}
-          uploads: |
-            ./index.html => ./public_html/grip/
-            ./grip-api.php => ./public_html/grip/
-            ./grip-version.php => ./public_html/grip/
-            ./schema.sql => ./public_html/grip/
+          local_path: './_deploy/*'
+          remote_path: '/home/addc5vqc95ni/public_html/grip'
+          sftp_only: true
+          delete_remote_files: false
