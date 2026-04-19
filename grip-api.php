@@ -3,6 +3,32 @@
 //  GRIP — REST API  v2  (multi-user, roles, bookings)
 //  VERSION: RENTER-CAPABLE-20260414
 // ============================================================
+
+// Catch fatal errors and return as JSON instead of HTML
+register_shutdown_function(function() {
+    $e = error_get_last();
+    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+        }
+        echo json_encode(['error' => 'PHP fatal: ' . $e['message'], 'file' => basename($e['file']), 'line' => $e['line']]);
+    }
+});
+
+// Diagnostic route — no config needed
+if (($_GET['r'] ?? '') === 'diag') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'php'     => PHP_VERSION,
+        'dir'     => basename(__DIR__),
+        'files'   => array_values(array_filter(array_map('basename', glob(__DIR__ . '/*.php') ?: []))),
+        'config'  => file_exists(__DIR__ . '/grip-config.php') ? 'found' : 'MISSING',
+        'pdf'     => file_exists(__DIR__ . '/grip-pdf.php')    ? 'found' : 'missing',
+    ]);
+    exit;
+}
+
 require_once __DIR__ . '/grip-config.php';
 if(file_exists(__DIR__.'/grip-version.php')) require_once __DIR__ . '/grip-version.php';
 if(!defined('GRIP_VERSION')) define('GRIP_VERSION','1.0.34');
