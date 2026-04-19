@@ -11,22 +11,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
       - name: Upload via SFTP
-        env:
-          HOST: ${{ secrets.SSH_HOST }}
-          USER: ${{ secrets.SSH_USER }}
-          PASS: ${{ secrets.SSH_PASS }}
-          PORT: ${{ secrets.SSH_PORT }}
-        run: |
-          lftp -u "$USER,$PASS" -p "$PORT" sftp://"$HOST" <<EOF
-          set sftp:auto-confirm yes
-          cd /home/addc5vqc95ni/public_html/grip
-          put -O . index.html
-          put -O . grip-api.php
-          put -O . grip-version.php
-          put -O . schema.sql
-          bye
-          EOF
+        uses: Dylan700/sftp-upload-action@latest
+        with:
+          server: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
+          port: ${{ secrets.SSH_PORT }}
+          uploads: |
+            ./index.html => /home/addc5vqc95ni/public_html/grip/
+            ./grip-api.php => /home/addc5vqc95ni/public_html/grip/
+            ./grip-version.php => /home/addc5vqc95ni/public_html/grip/
+            ./schema.sql => /home/addc5vqc95ni/public_html/grip/
