@@ -3,10 +3,10 @@
 //  GRIP — REST API  v2  (multi-user, roles, bookings)
 //  VERSION: RENTER-CAPABLE-20260414
 // ============================================================
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/grip-config.php';
 if(file_exists(__DIR__.'/grip-version.php')) require_once __DIR__ . '/grip-version.php';
 if(!defined('GRIP_VERSION')) define('GRIP_VERSION','1.0.34');
-require_once __DIR__ . '/grip-pdf.php';
+if(file_exists(__DIR__.'/grip-pdf.php')) require_once __DIR__ . '/grip-pdf.php';
 
 // Don't set JSON content-type for the iCal feed — it overrides ours
 $_route_peek = trim($_GET['r'] ?? '', '/');
