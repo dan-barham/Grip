@@ -131,19 +131,19 @@ header{
 .view.active{display:flex;}
 
 /* Views that stack content vertically get flex-direction:column */
-#view-home,#view-calendar,#view-contacts,#view-users,#view-inventory,#view-borrow,#view-settings{
+#view-home,#view-calendar,#view-contacts,#view-companies,#view-users,#view-inventory,#view-borrow,#view-settings{
   flex-direction:column;
 }
 
 /* Content panes — fill their column, scroll internally */
 #view-home{overflow-y:auto;}
-#calendar-content,#contacts-content,
+#calendar-content,#contacts-content,#companies-content,
 #users-content,#borrow-admin-content{
   flex:1;overflow-y:auto;
 }
 #home-content{     padding:1.8rem 2rem;   max-width:1100px;width:100%;margin:0 auto;flex:1;}
 #calendar-content{ padding:.3rem .8rem 0; width:100%;}
-#contacts-content{ padding:.6rem 1.8rem 1.5rem; max-width:900px;width:100%;margin:0 auto;}
+#contacts-content,#companies-content{ padding:.6rem 1.8rem 1.5rem; max-width:900px;width:100%;margin:0 auto;}
 #users-content{    padding:1.5rem 1.8rem; max-width:800px;width:100%;margin:0 auto;}
 #borrow-admin-content{ padding:1.5rem 1.8rem; max-width:1000px;width:100%;margin:0 auto;}
 
@@ -1496,7 +1496,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   #view-home,#view-calendar,#view-contacts,#view-users,
   #view-inventory,#view-borrow,#view-settings{overflow-y:auto;}
   #main-panel{overflow-y:auto;flex:1;}
-  #home-content,#calendar-content,#contacts-content,
+  #home-content,#calendar-content,#contacts-content,#companies-content,
   #users-content,#borrow-admin-content{overflow-y:visible;flex:none;}
 
   /* ── Content padding ── */
@@ -1742,6 +1742,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <button class="nav-tab" onclick="switchView('jobs')">Jobs</button>
     <button class="nav-tab" onclick="switchView('calendar')">Calendar</button>
     <button class="nav-tab" onclick="switchView('contacts')">Contacts</button>
+    <button class="nav-tab" onclick="switchView('companies')">Companies</button>
     <button class="nav-tab" id="nav-requests" onclick="switchView('borrow')" style="display:none">Requests</button>
     <button class="nav-tab" onclick="switchView('inventory')">Inventory</button>
     <button class="nav-tab" id="nav-users" onclick="switchView('users')" style="display:none">Users</button>
@@ -1829,6 +1830,11 @@ td.ta .btn+.btn{margin-left:.25rem;}
   <!-- CONTACTS VIEW -->
   <div class="view" id="view-contacts">
     <div id="contacts-content"></div>
+  </div>
+
+  <!-- COMPANIES VIEW -->
+  <div class="view" id="view-companies">
+    <div id="companies-content"></div>
   </div>
 
   <!-- USERS VIEW -->
@@ -2037,6 +2043,9 @@ td.ta .btn+.btn{margin-left:.25rem;}
       <button class="mob-more-item" id="mob-more-contacts" onclick="closeAllDrawers();mobileNav('contacts')">
         <span style="font-size:1.6rem">👥</span><span>Contacts</span>
       </button>
+      <button class="mob-more-item" id="mob-more-companies" onclick="closeAllDrawers();mobileNav('companies')">
+        <span style="font-size:1.6rem">🏢</span><span>Companies</span>
+      </button>
       <button class="mob-more-item" id="mob-more-requests" onclick="closeAllDrawers();mobileNav('borrow')" style="display:none">
         <span style="font-size:1.6rem">📋</span><span>Requests</span>
       </button>
@@ -2179,13 +2188,30 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <div class="fg"><label>Phone</label><input id="ce-phone" type="tel"></div>
   </div>
   <div class="frow">
-    <div class="fg"><label>Company</label><input id="ce-company" type="text"></div>
+    <div class="fg"><label>Company</label><input id="ce-company" type="text" list="company-datalist" autocomplete="off"></div>
     <div class="fg"></div>
   </div>
   <div class="fg"><label>Notes</label><textarea id="ce-notes" rows="2"></textarea></div>
   <div class="modal-foot">
     <button class="btn btn-ghost" onclick="closeModal('m-contact-edit')">Cancel</button>
     <button class="btn btn-accent" id="ce-save-btn" onclick="saveContact()">Save Contact</button>
+  </div>
+</div></div>
+
+<!-- ADD/EDIT PRODUCTION COMPANY MODAL -->
+<div class="overlay" id="m-company-edit" style="display:none"><div class="modal">
+  <div class="modal-title" id="m-company-edit-title">Add Production Company</div>
+  <div class="fg"><label>Company Name *</label><input id="pc-name" type="text" autocomplete="off" placeholder="e.g. Acme Films Ltd."></div>
+  <div class="frow">
+    <div class="fg"><label>Email</label><input id="pc-email" type="email" autocomplete="off"></div>
+    <div class="fg"><label>Phone</label><input id="pc-phone" type="tel"></div>
+  </div>
+  <div class="fg"><label>Website</label><input id="pc-website" type="url" placeholder="https://"></div>
+  <div class="fg"><label>Address</label><textarea id="pc-address" rows="2" placeholder="Street, City, State ZIP, Country"></textarea></div>
+  <div class="fg"><label>Notes</label><textarea id="pc-notes" rows="2"></textarea></div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal('m-company-edit')">Cancel</button>
+    <button class="btn btn-accent" id="pc-save-btn" onclick="saveCompany()">Save Company</button>
   </div>
 </div></div>
 
@@ -2462,10 +2488,10 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.79';
+const GRIP_VERSION = '1.0.80';
 const GRIP_BUILD_DATE = '2026-04-21';
 
-let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], borrowRequests:[], borrowRequestsError:null };
+let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities
 let jobContactsCache = {}; // job_id -> [{...contact+role}]
 let currentUser = null; // {id,username,role}
@@ -2521,11 +2547,12 @@ async function loadAll() {
   showLoading(true);
   try {
     const isAdmin = currentUser?.role==='admin';
-    const [jobs, inventory, log, contacts, borrowReqs, users] = await Promise.all([
+    const [jobs, inventory, log, contacts, companies, borrowReqs, users] = await Promise.all([
       apiGet('jobs'),
       apiGet('inventory'),
       apiGet('log'),
       apiGet('contacts'),
+      apiGet('production_companies'),
       isAdmin ? apiGet('borrow/requests') : Promise.resolve([]),
       isAdmin ? apiGet('users') : Promise.resolve([]),
     ]);
@@ -2533,6 +2560,7 @@ async function loadAll() {
     S.inventory = inventory || [];
     S.log       = (log || []).map(r => ({ t: r.log_time, html: r.html, type: r.type }));
     S.contacts  = contacts  || [];
+    S.companies = companies || [];
     if(isAdmin && users) S.users = users;
     await loadSettings();
     applySettingsToUI();
@@ -2676,6 +2704,7 @@ function switchView(v) {
   if(v==='borrow')   {if(currentUser?.role==='admin')renderBorrowAdminView();}
   if(v==='settings') {if(currentUser?.role==='admin')renderSettingsView();}
   if(v==='contacts') {renderContactsView();}
+  if(v==='companies') {renderCompaniesView();}
 }
 function mobileNav(v){
   closeAllDrawers();
@@ -2829,12 +2858,13 @@ async function syncJobDirectorFromContacts(jobId) {
   });
 }
 
-// Build deduped, sorted list of company names — contacts first (they have
-// email/phone/address saved), then jobs for legacy coverage.
+// Build deduped, sorted list of company names — dedicated company records first
+// (they have email/phone/address), then contacts and jobs for legacy coverage.
 function getCompanyList() {
-  const fromContacts = S.contacts.map(c => c.company).filter(Boolean);
-  const fromJobs     = S.jobs.map(j => j.co).filter(Boolean);
-  const set = new Set([...fromContacts, ...fromJobs]);
+  const fromCompanies = (S.companies||[]).map(c => c.name).filter(Boolean);
+  const fromContacts  = S.contacts.map(c => c.company).filter(Boolean);
+  const fromJobs      = S.jobs.map(j => j.co).filter(Boolean);
+  const set = new Set([...fromCompanies, ...fromContacts, ...fromJobs]);
   return [...set].sort((a,b) => a.localeCompare(b));
 }
 
@@ -5693,6 +5723,7 @@ function openAddContact() {
   ['ce-name','ce-email','ce-phone','ce-company','ce-role','ce-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('ce-save-btn').textContent = 'Add Contact';
+  refreshCompanyDatalist();
   openModal('m-contact-edit');
 }
 
@@ -5707,6 +5738,7 @@ function openEditContact(id) {
   document.getElementById('ce-role').value    = ct.role    || '';
   document.getElementById('ce-notes').value   = ct.notes   || '';
   document.getElementById('ce-save-btn').textContent = 'Save Changes';
+  refreshCompanyDatalist();
   openModal('m-contact-edit');
 }
 
@@ -5747,6 +5779,140 @@ async function deleteContact(id) {
   });
   toast('Contact deleted.');
   if(activeView==='contacts') renderContactsView();
+}
+
+// ══════════════════════════════════════════════════════════
+//  PRODUCTION COMPANIES — discrete org records with full contact info
+// ══════════════════════════════════════════════════════════
+let editingCompanyId = null;
+
+function openAddCompany() {
+  editingCompanyId = null;
+  document.getElementById('m-company-edit-title').textContent = 'Add Production Company';
+  ['pc-name','pc-email','pc-phone','pc-website','pc-address','pc-notes']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('pc-save-btn').textContent = 'Add Company';
+  openModal('m-company-edit');
+  setTimeout(()=>document.getElementById('pc-name')?.focus(), 50);
+}
+
+function openEditCompany(id) {
+  const co = S.companies.find(c => c.id === id); if(!co) return;
+  editingCompanyId = id;
+  document.getElementById('m-company-edit-title').textContent = 'Edit Production Company';
+  document.getElementById('pc-name').value    = co.name    || '';
+  document.getElementById('pc-email').value   = co.email   || '';
+  document.getElementById('pc-phone').value   = co.phone   || '';
+  document.getElementById('pc-website').value = co.website || '';
+  document.getElementById('pc-address').value = co.address || '';
+  document.getElementById('pc-notes').value   = co.notes   || '';
+  document.getElementById('pc-save-btn').textContent = 'Save Changes';
+  openModal('m-company-edit');
+}
+
+async function saveCompany() {
+  const name = document.getElementById('pc-name').value.trim();
+  if(!name){ toast('Company name is required.'); return; }
+  const payload = {
+    name,
+    email:   document.getElementById('pc-email').value.trim(),
+    phone:   document.getElementById('pc-phone').value.trim(),
+    website: document.getElementById('pc-website').value.trim(),
+    address: document.getElementById('pc-address').value.trim(),
+    notes:   document.getElementById('pc-notes').value.trim(),
+  };
+  if(editingCompanyId){
+    const prevName = S.companies.find(c=>c.id===editingCompanyId)?.name;
+    const r = await apiPut(`production_companies/${editingCompanyId}`, payload);
+    if(!r?.ok){ toast('Failed to save company.','error'); return; }
+    const co = S.companies.find(c=>c.id===editingCompanyId);
+    if(co) Object.assign(co, payload);
+    // If name changed, update any jobs referencing the old name
+    if(prevName && prevName !== name){
+      S.jobs.forEach(j => { if(j.co === prevName) j.co = name; });
+    }
+    toast('Company updated.','success');
+  } else {
+    const r = await apiPost('production_companies', payload);
+    if(!r?.id){ toast('Failed to save company.','error'); return; }
+    S.companies.push({id:r.id, ...payload});
+    toast('Company added.','success');
+  }
+  closeModal('m-company-edit');
+  refreshCompanyDatalist();
+  if(activeView==='companies') renderCompaniesView();
+}
+
+async function deleteCompany(id) {
+  const co = S.companies.find(c=>c.id===id); if(!co) return;
+  if(!confirm(`Delete "${co.name}"? This won't remove it from any existing jobs (they'll just show as plain text).`)) return;
+  const r = await apiDelete(`production_companies/${id}`);
+  if(!r?.ok){ toast('Failed to delete company.','error'); return; }
+  S.companies = S.companies.filter(c=>c.id!==id);
+  refreshCompanyDatalist();
+  toast('Company deleted.');
+  if(activeView==='companies') renderCompaniesView();
+}
+
+// ── Companies view ────────────────────────────────────────
+function renderCompaniesView() {
+  const el = document.getElementById('companies-content'); if(!el) return;
+  const isViewer = currentUser?.role==='viewer';
+  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const coPl = n => `${n} ${n===1?'company':'companies'}`;
+  const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
+
+  let html = `<div class="section-head">
+    <div>
+      <div class="section-title">Production Companies</div>
+      <div class="section-sub">${coPl(companies.length)} in your directory</div>
+    </div>
+    ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>' : ''}
+  </div>`;
+
+  if(!companies.length){
+    html += '<div class="empty" style="padding:2rem 0">No production companies yet. Add client companies and production houses you work with.</div>';
+    html += renderViewFooter();
+    el.innerHTML = html; return;
+  }
+
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const webHref = w => {
+    if(!w) return '';
+    return /^https?:\/\//i.test(w) ? w : 'https://' + w;
+  };
+
+  // Find job count per company
+  const jobCounts = {};
+  S.jobs.forEach(j => { if(j.co) jobCounts[j.co] = (jobCounts[j.co]||0) + 1; });
+
+  html += `<div style="display:flex;flex-direction:column;gap:.6rem">`;
+  companies.forEach(co => {
+    const initials = co.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const jobCount = jobCounts[co.name] || 0;
+    const canEdit = !isViewer;
+    html += `<div class="contact-card">
+      <div class="cc-avatar" style="background:var(--accent2,var(--accent));">${esc(initials)}</div>
+      <div class="cc-info">
+        <div class="cc-name">${esc(co.name)}</div>
+        ${jobCount ? `<div class="cc-role">${pl(jobCount,'job')}</div>` : ''}
+        <div class="cc-meta">
+          ${co.email?`<a href="mailto:${esc(co.email)}">✉ ${esc(co.email)}</a>`:''}
+          ${co.phone?`<span>📞 ${esc(co.phone)}</span>`:''}
+          ${co.website?`<a href="${esc(webHref(co.website))}" target="_blank" rel="noopener">🌐 ${esc(co.website)}</a>`:''}
+        </div>
+        ${co.address?`<div class="cc-notes" style="white-space:pre-line">📍 ${esc(co.address)}</div>`:''}
+        ${co.notes?`<div class="cc-notes">${esc(co.notes)}</div>`:''}
+      </div>
+      ${canEdit?`<div class="cc-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openEditCompany('${co.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost btn-xs" onclick="deleteCompany('${co.id}')" title="Delete" style="color:var(--err,#d03040)">✕</button>
+      </div>`:''}
+    </div>`;
+  });
+  html += `</div>`;
+  html += renderViewFooter();
+  el.innerHTML = html;
 }
 
 // ── Contacts view ─────────────────────────────────────────

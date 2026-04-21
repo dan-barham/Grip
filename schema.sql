@@ -106,6 +106,18 @@ CREATE TABLE IF NOT EXISTS bookings (
   FOREIGN KEY (job_id)  REFERENCES jobs(id)  ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS production_companies (
+  id         VARCHAR(20)  PRIMARY KEY,
+  name       VARCHAR(255) NOT NULL,
+  email      VARCHAR(255) DEFAULT '',
+  phone      VARCHAR(80)  DEFAULT '',
+  website    VARCHAR(255) DEFAULT '',
+  address    TEXT         DEFAULT '',
+  notes      TEXT         DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_pc_name (name)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS contacts (
   id         VARCHAR(20)  PRIMARY KEY,
   name       VARCHAR(255) NOT NULL,

@@ -980,6 +980,71 @@ if($resource==='contacts'){
 }
 
 // ════════════════════════════════════════════════════════════
+//  PRODUCTION COMPANIES  — discrete company records with contact info
+// ════════════════════════════════════════════════════════════
+if($resource==='production_companies'){
+
+    // Auto-migrate: create table if missing (idempotent, cheap)
+    db()->exec("CREATE TABLE IF NOT EXISTS production_companies (
+        id         VARCHAR(20)  PRIMARY KEY,
+        name       VARCHAR(255) NOT NULL,
+        email      VARCHAR(255) DEFAULT '',
+        phone      VARCHAR(80)  DEFAULT '',
+        website    VARCHAR(255) DEFAULT '',
+        address    TEXT,
+        notes      TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_pc_name (name)
+    ) ENGINE=InnoDB");
+
+    if($method==='GET'&&!$id){
+        json_out(db()->query('SELECT * FROM production_companies ORDER BY name')->fetchAll());
+    }
+
+    if($method==='POST'&&!$id){
+        require_role('admin','operator');
+        $b=body(); $pid=uid();
+        $name = trim($b['name']??'');
+        if(!$name) err('Company name required');
+        try {
+            db()->prepare('INSERT INTO production_companies (id,name,email,phone,website,address,notes) VALUES (?,?,?,?,?,?,?)')
+                ->execute([$pid, $name,
+                    trim($b['email']??''), trim($b['phone']??''),
+                    trim($b['website']??''), trim($b['address']??''),
+                    trim($b['notes']??'')]);
+        } catch(PDOException $e) {
+            if($e->getCode()==='23000') err('A company with that name already exists.', 409);
+            throw $e;
+        }
+        json_out(['id'=>$pid]);
+    }
+
+    if($method==='PUT'&&$id){
+        require_role('admin','operator');
+        $b=body();
+        $name = trim($b['name']??'');
+        if(!$name) err('Company name required');
+        try {
+            db()->prepare('UPDATE production_companies SET name=?,email=?,phone=?,website=?,address=?,notes=? WHERE id=?')
+                ->execute([$name,
+                    trim($b['email']??''), trim($b['phone']??''),
+                    trim($b['website']??''), trim($b['address']??''),
+                    trim($b['notes']??''), $id]);
+        } catch(PDOException $e) {
+            if($e->getCode()==='23000') err('A company with that name already exists.', 409);
+            throw $e;
+        }
+        json_out(['ok'=>true]);
+    }
+
+    if($method==='DELETE'&&$id){
+        require_role('admin','operator');
+        db()->prepare('DELETE FROM production_companies WHERE id=?')->execute([$id]);
+        json_out(['ok'=>true]);
+    }
+}
+
+// ════════════════════════════════════════════════════════════
 //  JOB CONTACTS  — contacts assigned to a specific job
 // ════════════════════════════════════════════════════════════
 if($resource==='job_contacts'){
