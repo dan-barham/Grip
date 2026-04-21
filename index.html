@@ -1347,6 +1347,93 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .dir-empty-icon{font-size:2rem;display:block;margin-bottom:.6rem;opacity:.45;}
 .dir-empty-hint{font-size:.8rem;color:var(--text3);margin-top:.4rem;}
 
+/* Filter/sort toolbar below search */
+.dir-toolbar{
+  display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+  margin-bottom:.9rem;padding:.55rem .7rem;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  font-size:.8rem;
+}
+.dir-toolbar-group{
+  display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap;
+}
+.dir-toolbar-label{
+  font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);margin-right:.15rem;
+}
+.dir-toolbar select{
+  font-family:var(--ui);font-size:.8rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);padding:.28rem .5rem;cursor:pointer;
+}
+.dir-toolbar select:hover{border-color:var(--border3);}
+.dir-toolbar select:focus{outline:none;border-color:var(--accent);}
+
+/* Filter chip */
+.dir-chip{
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-size:.74rem;font-family:var(--ui);
+  padding:.2rem .6rem;border-radius:12px;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);transition:all .1s;user-select:none;
+}
+.dir-chip:hover{border-color:var(--border3);color:var(--text);}
+.dir-chip.active{
+  background:var(--accent-dim);border-color:var(--accent);
+  color:var(--accent);font-weight:500;
+}
+.dir-chip-clear{
+  font-size:.72rem;color:var(--text3);cursor:pointer;
+  padding:.15rem .4rem;border-radius:4px;
+  text-decoration:underline;text-underline-offset:2px;
+}
+.dir-chip-clear:hover{color:var(--text);}
+
+/* Bulk selection */
+.contact-card{
+  position:relative;
+}
+.cc-checkbox{
+  flex-shrink:0;align-self:center;
+  width:18px;height:18px;cursor:pointer;
+  accent-color:var(--accent);
+}
+.contact-card.selected{
+  background:var(--accent-dim);
+  border-color:var(--accent);
+}
+.contact-card.selected::before{background:var(--accent) !important;opacity:1 !important;}
+
+/* Floating bulk action bar */
+.bulk-bar{
+  position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem .9rem;border-radius:10px;
+  background:var(--text);color:var(--surface);
+  box-shadow:0 4px 20px rgba(0,0,0,.2);
+  z-index:50;font-size:.85rem;
+  animation:bulk-bar-in .18s ease-out;
+}
+@keyframes bulk-bar-in{
+  from{opacity:0;transform:translate(-50%,8px);}
+  to{opacity:1;transform:translate(-50%,0);}
+}
+.bulk-bar-count{
+  font-weight:600;padding-right:.55rem;
+  border-right:1px solid rgba(255,255,255,.18);
+}
+.bulk-bar button{
+  background:transparent;border:1px solid rgba(255,255,255,.3);
+  color:var(--surface);font-size:.8rem;
+  padding:.32rem .7rem;border-radius:6px;cursor:pointer;
+  font-family:var(--ui);font-weight:500;transition:all .1s;
+}
+.bulk-bar button:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5);}
+.bulk-bar button.danger{border-color:rgba(220,80,80,.5);color:#ffb0b0;}
+.bulk-bar button.danger:hover{background:rgba(220,80,80,.18);color:#ffe0e0;}
+.bulk-bar button.ghost{border-color:transparent;opacity:.7;}
+.bulk-bar button.ghost:hover{opacity:1;}
+
 /* ─── end DIRECTORY VIEW ─── */
 
 /* Job contacts panel inside job rail item */
@@ -2673,7 +2760,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.84';
+const GRIP_VERSION = '1.0.85';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -6101,21 +6188,52 @@ async function deleteCompany(id) {
 let directorySubTab = 'people'; // 'people' | 'companies'
 let directorySearch = '';
 
+// Sort state (per tab)
+let peopleSort     = 'name';   // name | role | recent
+let companiesSort  = 'name';   // name | jobs | recent
+
+// Filter state
+let peopleRoleFilter    = '';  // '' = all, otherwise role name
+let companiesFilter     = '';  // '' | 'has-jobs' | 'has-website'
+
+// Bulk selection state — Set of IDs, scoped to current tab
+let selectedPeopleIds    = new Set();
+let selectedCompanyIds   = new Set();
+
+function currentSelection() {
+  return directorySubTab === 'companies' ? selectedCompanyIds : selectedPeopleIds;
+}
+
+function clearDirectorySelection() {
+  selectedPeopleIds.clear();
+  selectedCompanyIds.clear();
+}
+
+function toggleDirectorySelect(id) {
+  const sel = currentSelection();
+  if(sel.has(id)) sel.delete(id); else sel.add(id);
+  renderDirectoryView();
+}
+
 function setDirectorySubTab(tab) {
   directorySubTab = tab;
-  // Preserve search only if it's meaningful across both tabs (name)
   renderDirectoryView();
 }
 
 function onDirectorySearch(v) {
   directorySearch = v || '';
-  // Only re-render the list body — keep focus in the input
-  const body = document.getElementById('dir-body');
-  if(!body) { renderDirectoryView(); return; }
-  const ctx = makeDirectoryCtx();
-  body.innerHTML = directorySubTab === 'companies'
-    ? renderCompaniesSection(ctx)
-    : renderContactsSection(ctx);
+  renderDirectoryView();
+}
+
+function setPeopleSort(v)    { peopleSort = v; renderDirectoryView(); }
+function setCompaniesSort(v) { companiesSort = v; renderDirectoryView(); }
+function setPeopleRoleFilter(r){
+  peopleRoleFilter = (peopleRoleFilter === r) ? '' : r;
+  renderDirectoryView();
+}
+function setCompaniesFilter(f){
+  companiesFilter = (companiesFilter === f) ? '' : f;
+  renderDirectoryView();
 }
 
 function makeDirectoryCtx() {
@@ -6136,11 +6254,11 @@ function renderDirectoryView() {
 
   const tabBar = `<div class="dir-tabs" role="tablist">
     <button class="dir-tab ${directorySubTab==='people'?'active':''}"
-            onclick="setDirectorySubTab('people')" role="tab">
+            onclick="clearDirectorySelection();setDirectorySubTab('people')" role="tab">
       👥 People <span class="dir-tab-count">${peopleCount}</span>
     </button>
     <button class="dir-tab ${directorySubTab==='companies'?'active':''}"
-            onclick="setDirectorySubTab('companies')" role="tab">
+            onclick="clearDirectorySelection();setDirectorySubTab('companies')" role="tab">
       🏢 Companies <span class="dir-tab-count">${companiesCount}</span>
     </button>
   </div>`;
@@ -6157,11 +6275,17 @@ function renderDirectoryView() {
            autocomplete="off">
   </div>`;
 
+  const toolbar = directorySubTab === 'companies'
+    ? renderCompaniesToolbar(ctx)
+    : renderPeopleToolbar(ctx);
+
   const body = directorySubTab === 'companies'
     ? renderCompaniesSection(ctx)
     : renderContactsSection(ctx);
 
-  el.innerHTML = tabBar + searchBar + `<div id="dir-body">${body}</div>` + renderViewFooter();
+  const bulkBar = renderBulkBar(ctx);
+
+  el.innerHTML = tabBar + searchBar + toolbar + `<div id="dir-body">${body}</div>` + bulkBar + renderViewFooter();
 
   // Restore focus + caret to search input if user was typing
   const inp = document.getElementById('dir-search-input');
@@ -6172,13 +6296,168 @@ function renderDirectoryView() {
   }
 }
 
+// ── Toolbar for People tab ────────────────────────────────
+function renderPeopleToolbar({esc}) {
+  // Role filter chips — only show if there are multiple roles
+  const roles = [...new Set(S.contacts.map(c => c.role || 'Other'))].sort();
+  const chips = roles.length > 1 ? roles.map(r =>
+    `<span class="dir-chip ${peopleRoleFilter===r?'active':''}"
+           onclick="setPeopleRoleFilter('${esc(r).replace(/'/g,"\\'")}')">${esc(r)}</span>`
+  ).join('') : '';
+
+  const clearBtn = peopleRoleFilter
+    ? `<span class="dir-chip-clear" onclick="setPeopleRoleFilter('')">Clear filter</span>`
+    : '';
+
+  return `<div class="dir-toolbar">
+    <div class="dir-toolbar-group">
+      <span class="dir-toolbar-label">Sort</span>
+      <select onchange="setPeopleSort(this.value)">
+        <option value="name"${peopleSort==='name'?' selected':''}>Name (A–Z)</option>
+        <option value="role"${peopleSort==='role'?' selected':''}>Role</option>
+        <option value="recent"${peopleSort==='recent'?' selected':''}>Recently added</option>
+      </select>
+    </div>
+    ${chips ? `<div class="dir-toolbar-group" style="flex:1;min-width:0;overflow-x:auto">
+      <span class="dir-toolbar-label">Role</span>
+      ${chips}
+      ${clearBtn}
+    </div>` : ''}
+  </div>`;
+}
+
+// ── Toolbar for Companies tab ─────────────────────────────
+function renderCompaniesToolbar({esc}) {
+  const chips = `
+    <span class="dir-chip ${companiesFilter==='has-jobs'?'active':''}"
+          onclick="setCompaniesFilter('has-jobs')">Has jobs</span>
+    <span class="dir-chip ${companiesFilter==='has-website'?'active':''}"
+          onclick="setCompaniesFilter('has-website')">Has website</span>`;
+  const clearBtn = companiesFilter
+    ? `<span class="dir-chip-clear" onclick="setCompaniesFilter('')">Clear filter</span>`
+    : '';
+
+  return `<div class="dir-toolbar">
+    <div class="dir-toolbar-group">
+      <span class="dir-toolbar-label">Sort</span>
+      <select onchange="setCompaniesSort(this.value)">
+        <option value="name"${companiesSort==='name'?' selected':''}>Name (A–Z)</option>
+        <option value="jobs"${companiesSort==='jobs'?' selected':''}>Most jobs</option>
+        <option value="recent"${companiesSort==='recent'?' selected':''}>Most recent job</option>
+      </select>
+    </div>
+    <div class="dir-toolbar-group">
+      <span class="dir-toolbar-label">Filter</span>
+      ${chips}
+      ${clearBtn}
+    </div>
+  </div>`;
+}
+
+// ── Floating bulk action bar ──────────────────────────────
+function renderBulkBar({isViewer}) {
+  const sel = currentSelection();
+  if(isViewer || !sel.size) return '';
+  const plural = directorySubTab === 'companies'
+    ? (sel.size === 1 ? 'company' : 'companies')
+    : (sel.size === 1 ? 'contact' : 'contacts');
+
+  const bulkCompanyPicker = directorySubTab === 'people'
+    ? `<button onclick="bulkAssignCompany()" title="Assign same company to all selected">Assign company…</button>`
+    : '';
+
+  return `<div class="bulk-bar" role="status">
+    <span class="bulk-bar-count">${sel.size} ${plural} selected</span>
+    ${bulkCompanyPicker}
+    <button class="danger" onclick="bulkDeleteDirectory()">Delete</button>
+    <button class="ghost" onclick="clearDirectorySelection();renderDirectoryView()">Cancel</button>
+  </div>`;
+}
+
+// ── Bulk operations ───────────────────────────────────────
+async function bulkDeleteDirectory() {
+  const sel = currentSelection();
+  if(!sel.size) return;
+  const kind = directorySubTab === 'companies' ? 'companies' : 'contacts';
+  const n = sel.size;
+  if(!confirm(`Delete ${n} ${n===1?kind.slice(0,-1):kind}? This cannot be undone.`)) return;
+
+  const ids = [...sel];
+  const endpoint = directorySubTab === 'companies' ? 'production_companies' : 'contacts';
+  const failures = [];
+
+  for(const id of ids){
+    const r = await apiDelete(`${endpoint}/${id}`);
+    if(!r?.ok) failures.push(id);
+  }
+  // Update local state — skip failures
+  if(directorySubTab === 'companies'){
+    S.companies = S.companies.filter(c => failures.includes(c.id) || !ids.includes(c.id));
+  } else {
+    S.contacts = S.contacts.filter(c => failures.includes(c.id) || !ids.includes(c.id));
+    // Clean job-contacts cache
+    Object.keys(jobContactsCache).forEach(jid => {
+      jobContactsCache[jid] = jobContactsCache[jid].filter(jc => !ids.includes(jc.contact_id));
+    });
+  }
+  clearDirectorySelection();
+  if(failures.length){
+    toast(`Deleted ${n - failures.length}; ${failures.length} failed.`, 'error');
+  } else {
+    toast(`Deleted ${n} ${n===1?kind.slice(0,-1):kind}.`, 'success');
+  }
+  refreshCompanyDatalist();
+  renderDirectoryView();
+}
+
+async function bulkAssignCompany() {
+  const sel = selectedPeopleIds;
+  if(!sel.size) return;
+  // Build picker list
+  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(!companies.length){
+    toast('No companies yet — add one first.', 'error');
+    return;
+  }
+  const opts = ['— None —', ...companies.map(c => c.name)];
+  const msg  = `Assign which company to ${sel.size} ${sel.size===1?'contact':'contacts'}?\n\n` +
+               opts.map((n,i)=>`${i}: ${n}`).join('\n') +
+               `\n\nEnter the number:`;
+  const raw = prompt(msg);
+  if(raw === null) return;
+  const idx = parseInt(raw, 10);
+  if(isNaN(idx) || idx < 0 || idx >= opts.length){
+    toast('Invalid selection.', 'error');
+    return;
+  }
+  const companyName = idx === 0 ? '' : opts[idx];
+  const ids = [...sel];
+  let ok = 0, fail = 0;
+  for(const id of ids){
+    const ct = S.contacts.find(c => c.id === id);
+    if(!ct) { fail++; continue; }
+    const payload = {
+      name: ct.name, email: ct.email||'', phone: ct.phone||'',
+      company: companyName, role: ct.role||'', notes: ct.notes||'',
+    };
+    const r = await apiPut(`contacts/${id}`, payload);
+    if(r?.ok){ ct.company = companyName; ok++; } else { fail++; }
+  }
+  clearDirectorySelection();
+  if(fail) toast(`Updated ${ok}; ${fail} failed.`, 'error');
+  else     toast(`Updated ${ok} ${ok===1?'contact':'contacts'}.`, 'success');
+  renderDirectoryView();
+}
+
 // ── Contacts section (people) ─────────────────────────────
 function renderContactsSection({isViewer, pl, esc, q}) {
   const addBtn = !isViewer
     ? '<button class="home-action-btn primary" onclick="openAddContact()">＋ Add Contact</button>'
     : '';
 
-  let contacts = S.contacts;
+  let contacts = S.contacts.slice();
+
+  // Search filter
   if(q){
     contacts = contacts.filter(c =>
       (c.name||'').toLowerCase().includes(q) ||
@@ -6189,10 +6468,39 @@ function renderContactsSection({isViewer, pl, esc, q}) {
     );
   }
 
+  // Role filter
+  if(peopleRoleFilter){
+    contacts = contacts.filter(c => (c.role || 'Other') === peopleRoleFilter);
+  }
+
+  // Sort
+  contacts.sort((a,b) => {
+    if(peopleSort === 'role'){
+      const ar = a.role || 'Other', br = b.role || 'Other';
+      if(ar !== br) {
+        if(ar === 'Other') return 1;
+        if(br === 'Other') return -1;
+        return ar.localeCompare(br);
+      }
+      return (a.name||'').localeCompare(b.name||'');
+    }
+    if(peopleSort === 'recent'){
+      // created_at desc — fall back to name if missing
+      const at = a.created_at || '', bt = b.created_at || '';
+      if(at !== bt) return bt.localeCompare(at);
+      return (a.name||'').localeCompare(b.name||'');
+    }
+    return (a.name||'').localeCompare(b.name||'');
+  });
+
+  const filterDesc = [];
+  if(q) filterDesc.push(`matching "${esc(q)}"`);
+  if(peopleRoleFilter) filterDesc.push(`in ${esc(peopleRoleFilter)}`);
+
   let html = `<div class="dir-section-head">
     <div>
       <div class="section-title">People</div>
-      <div class="dsh-sub">${pl(contacts.length,'contact')}${q?` matching "${esc(q)}"`:` in your address book`}</div>
+      <div class="dsh-sub">${pl(contacts.length,'contact')}${filterDesc.length ? ' ' + filterDesc.join(', ') : ' in your address book'}</div>
     </div>
     ${addBtn}
   </div>`;
@@ -6208,37 +6516,39 @@ function renderContactsSection({isViewer, pl, esc, q}) {
   if(!contacts.length){
     html += `<div class="dir-empty">
       <span class="dir-empty-icon">🔍</span>
-      No contacts match "${esc(q)}".
+      No contacts match your current search and filters.
     </div>`;
     return html;
   }
 
-  // Group by role
-  const byRole = {};
-  contacts.forEach(ct => {
-    const r = ct.role || 'Other';
-    if(!byRole[r]) byRole[r] = [];
-    byRole[r].push(ct);
-  });
-  // Put "Other" last, everything else alphabetical
-  const sorted = Object.keys(byRole).sort((a,b) => {
-    if(a === 'Other') return 1;
-    if(b === 'Other') return -1;
-    return a.localeCompare(b);
-  });
-
-  sorted.forEach(role => {
-    const people = byRole[role];
-    html += `<div class="dir-role-head">
-      <span>${esc(role)}</span>
-      <span class="rc-count">${people.length}</span>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:.5rem;">`;
-    people.forEach(ct => {
-      html += renderPersonCard(ct, {isViewer, esc});
+  // Grouping depends on sort
+  if(peopleSort === 'role'){
+    const byRole = {};
+    contacts.forEach(ct => {
+      const r = ct.role || 'Other';
+      if(!byRole[r]) byRole[r] = [];
+      byRole[r].push(ct);
     });
+    const sortedRoles = Object.keys(byRole).sort((a,b) => {
+      if(a === 'Other') return 1;
+      if(b === 'Other') return -1;
+      return a.localeCompare(b);
+    });
+    sortedRoles.forEach(role => {
+      const people = byRole[role];
+      html += `<div class="dir-role-head">
+        <span>${esc(role)}</span>
+        <span class="rc-count">${people.length}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">`;
+      people.forEach(ct => { html += renderPersonCard(ct, {isViewer, esc}); });
+      html += `</div>`;
+    });
+  } else {
+    html += `<div style="display:flex;flex-direction:column;gap:.5rem;">`;
+    contacts.forEach(ct => { html += renderPersonCard(ct, {isViewer, esc}); });
     html += `</div>`;
-  });
+  }
   return html;
 }
 
@@ -6249,8 +6559,13 @@ function renderPersonCard(ct, {isViewer, esc}) {
   if(ct.phone)   chips.push(`<a class="cc-chip" href="tel:${esc(ct.phone)}" title="${esc(ct.phone)}"><span class="cc-chip-icon">📞</span><span class="cc-chip-text">${esc(ct.phone)}</span></a>`);
   if(ct.company) chips.push(`<span class="cc-chip" title="${esc(ct.company)}"><span class="cc-chip-icon">🏢</span><span class="cc-chip-text">${esc(ct.company)}</span></span>`);
   const canEdit = !isViewer;
+  const isSelected = selectedPeopleIds.has(ct.id);
 
-  return `<div class="contact-card cc-person">
+  return `<div class="contact-card cc-person${isSelected?' selected':''}">
+    ${canEdit ? `<input type="checkbox" class="cc-checkbox"
+      ${isSelected?'checked':''}
+      onclick="event.stopPropagation();toggleDirectorySelect('${ct.id}')"
+      title="Select for bulk actions">` : ''}
     <div class="cc-avatar">${esc(initials)}</div>
     <div class="cc-info">
       <div class="cc-header">
@@ -6273,8 +6588,22 @@ function renderCompaniesSection({isViewer, pl, coPl, esc, q}) {
     ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>'
     : '';
 
-  let companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  let companies = (S.companies||[]).slice();
 
+  // Build per-company lookups for sorting/filtering
+  const jobsByCo = {};
+  const latestJobDateByCo = {};
+  S.jobs.forEach(j => {
+    if(!j.co) return;
+    if(!jobsByCo[j.co]) jobsByCo[j.co] = [];
+    jobsByCo[j.co].push(j);
+    const latest = jobLatestDate(j);
+    if(latest && (!latestJobDateByCo[j.co] || latest > latestJobDateByCo[j.co])){
+      latestJobDateByCo[j.co] = latest;
+    }
+  });
+
+  // Search filter
   if(q){
     companies = companies.filter(co =>
       (co.name||'').toLowerCase().includes(q) ||
@@ -6285,10 +6614,37 @@ function renderCompaniesSection({isViewer, pl, coPl, esc, q}) {
     );
   }
 
+  // Quick filter
+  if(companiesFilter === 'has-jobs'){
+    companies = companies.filter(co => (jobsByCo[co.name]||[]).length > 0);
+  } else if(companiesFilter === 'has-website'){
+    companies = companies.filter(co => !!co.website);
+  }
+
+  // Sort
+  companies.sort((a,b) => {
+    if(companiesSort === 'jobs'){
+      const an = (jobsByCo[a.name]||[]).length, bn = (jobsByCo[b.name]||[]).length;
+      if(an !== bn) return bn - an;
+      return a.name.localeCompare(b.name);
+    }
+    if(companiesSort === 'recent'){
+      const ad = latestJobDateByCo[a.name] || '', bd = latestJobDateByCo[b.name] || '';
+      if(ad !== bd) return bd.localeCompare(ad);
+      return a.name.localeCompare(b.name);
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  const filterDesc = [];
+  if(q) filterDesc.push(`matching "${esc(q)}"`);
+  if(companiesFilter === 'has-jobs')    filterDesc.push('with jobs');
+  if(companiesFilter === 'has-website') filterDesc.push('with website');
+
   let html = `<div class="dir-section-head">
     <div>
       <div class="section-title">Production Companies</div>
-      <div class="dsh-sub">${coPl(companies.length)}${q?` matching "${esc(q)}"`:` in your directory`}</div>
+      <div class="dsh-sub">${coPl(companies.length)}${filterDesc.length ? ' ' + filterDesc.join(', ') : ' in your directory'}</div>
     </div>
     ${addBtn}
   </div>`;
@@ -6304,18 +6660,10 @@ function renderCompaniesSection({isViewer, pl, coPl, esc, q}) {
   if(!companies.length){
     html += `<div class="dir-empty">
       <span class="dir-empty-icon">🔍</span>
-      No companies match "${esc(q)}".
+      No companies match your current search and filters.
     </div>`;
     return html;
   }
-
-  // Group jobs by their `co` (production company name)
-  const jobsByCo = {};
-  S.jobs.forEach(j => {
-    if(!j.co) return;
-    if(!jobsByCo[j.co]) jobsByCo[j.co] = [];
-    jobsByCo[j.co].push(j);
-  });
 
   html += `<div style="display:flex;flex-direction:column;gap:.65rem;">`;
   companies.forEach(co => {
@@ -6339,7 +6687,11 @@ function renderCompanyCard(co, coJobs, {isViewer, pl, esc}) {
   if(co.phone)   chips.push(`<a class="cc-chip" href="tel:${esc(co.phone)}" title="${esc(co.phone)}"><span class="cc-chip-icon">📞</span><span class="cc-chip-text">${esc(co.phone)}</span></a>`);
   if(co.website) chips.push(`<a class="cc-chip" href="${esc(webHref(co.website))}" target="_blank" rel="noopener" title="${esc(co.website)}"><span class="cc-chip-icon">🌐</span><span class="cc-chip-text">${esc(co.website)}</span></a>`);
 
-  return `<div class="contact-card cc-company">
+  return `<div class="contact-card cc-company${selectedCompanyIds.has(co.id)?' selected':''}">
+    ${canEdit ? `<input type="checkbox" class="cc-checkbox"
+      ${selectedCompanyIds.has(co.id)?'checked':''}
+      onclick="event.stopPropagation();toggleDirectorySelect('${co.id}')"
+      title="Select for bulk actions">` : ''}
     <div class="cc-avatar cc-avatar-company">${esc(initials)}</div>
     <div class="cc-info">
       <div class="cc-header">
