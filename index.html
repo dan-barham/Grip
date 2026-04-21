@@ -1554,98 +1554,254 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .borrow-success p{font-size:.88rem;color:var(--text3);}
 
 /* ── HOME SCREEN ── */
-.home-greeting{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:.2rem;letter-spacing:-.02em;}
-.home-date{font-size:.82rem;color:var(--text3);margin-bottom:1.75rem;font-family:var(--mono);}
 
-.home-section{margin-bottom:2rem;}
-.home-section-title{
-  font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
-  color:var(--text3);margin-bottom:.75rem;padding-bottom:.45rem;
-  border-bottom:1px solid var(--border);
+/* Header block */
+.home-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:1.5rem;margin-bottom:2rem;flex-wrap:wrap;
 }
+.home-header-text{min-width:0;}
+.home-greeting{
+  font-size:1.85rem;font-weight:700;color:var(--text);
+  letter-spacing:-.02em;line-height:1.15;
+}
+.home-greeting-emoji{margin-right:.2rem;}
+.home-date{
+  font-size:.85rem;color:var(--text3);margin-top:.3rem;
+  font-family:var(--mono);letter-spacing:.02em;
+}
+.home-header-actions{display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0;}
 
-/* KPI row */
-.home-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:2rem;}
+/* Section headers — clearer hierarchy with optional supporting text & actions */
+.home-section{margin-bottom:2rem;}
+.home-section-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:1rem;margin-bottom:.85rem;
+}
+.home-section-title{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--text2);display:inline-flex;align-items:center;gap:.45rem;
+}
+.home-section-title .hst-count{
+  font-family:var(--mono);font-weight:500;font-size:.72rem;letter-spacing:0;
+  padding:.05rem .45rem;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text3);text-transform:none;
+}
+.home-section-action{
+  font-size:.76rem;color:var(--text3);cursor:pointer;
+  text-decoration:none;border:none;background:transparent;padding:0;
+  font-family:var(--ui);
+}
+.home-section-action:hover{color:var(--accent);}
+
+/* KPI row — clickable tiles with distinct primary/secondary weighting */
+.home-kpi-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:.7rem;margin-bottom:2rem;
+}
 .home-kpi{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.25rem;
+  padding:.95rem 1.05rem;display:flex;flex-direction:column;gap:.2rem;
+  cursor:pointer;transition:all .14s;position:relative;overflow:hidden;
 }
-.home-kpi-val{font-size:1.9rem;font-weight:700;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;}
+.home-kpi::after{
+  content:"›";position:absolute;top:.7rem;right:.9rem;
+  font-size:1.1rem;color:var(--text3);opacity:0;transition:opacity .14s, transform .14s;
+}
+.home-kpi:hover{border-color:var(--border3);box-shadow:0 1px 6px rgba(0,0,0,.05);transform:translateY(-1px);}
+.home-kpi:hover::after{opacity:.7;transform:translateX(3px);}
+.home-kpi.is-alert{border-color:rgba(224,72,72,.45);background:rgba(224,72,72,.04);}
+.home-kpi.is-warn{border-color:rgba(240,160,32,.45);background:rgba(240,160,32,.04);}
+.home-kpi-top{display:flex;align-items:center;gap:.5rem;}
+.home-kpi-icon{
+  font-size:1rem;width:24px;height:24px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--surface2);color:var(--text3);flex-shrink:0;
+}
+.home-kpi-lbl{
+  font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);
+}
+.home-kpi-val{
+  font-size:2.1rem;font-weight:700;color:var(--text);line-height:1;
+  font-variant-numeric:tabular-nums;margin-top:.25rem;
+}
 .home-kpi-val.amber{color:var(--accent);}
 .home-kpi-val.red  {color:var(--red);}
 .home-kpi-val.green{color:var(--green);}
-.home-kpi-lbl{font-size:.78rem;color:var(--text3);}
-.home-kpi-sub{font-size:.75rem;color:var(--text3);font-family:var(--mono);margin-top:.1rem;}
+.home-kpi-sub{
+  font-size:.76rem;color:var(--text3);font-family:var(--mono);margin-top:.1rem;
+  letter-spacing:.02em;
+}
 
 /* Quick action buttons */
-.home-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2rem;}
+.home-actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:2rem;}
 .home-action-btn{
-  display:inline-flex;align-items:center;gap:.5rem;
+  display:inline-flex;align-items:center;gap:.45rem;
   background:var(--surface);border:1px solid var(--border2);border-radius:8px;
-  color:var(--text2);font-family:var(--ui);font-size:.88rem;
+  color:var(--text2);font-family:var(--ui);font-size:.86rem;font-weight:500;
   padding:.5rem .95rem;cursor:pointer;transition:all .12s;
 }
 .home-action-btn:hover{background:var(--surface3);border-color:var(--border3);color:var(--text);}
-.home-action-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-.home-action-btn.primary:hover{background:#d48a18;}
+.home-action-btn.primary{
+  background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
+  box-shadow:0 1px 4px rgba(245,166,35,.3);
+}
+.home-action-btn.primary:hover{background:#d48a18;box-shadow:0 2px 8px rgba(245,166,35,.4);}
 .home-action-icon{font-size:1rem;}
 
-/* Active jobs cards */
-.home-jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;}
-.home-job-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:1rem 1.1rem;cursor:pointer;transition:border-color .12s;
+/* Alerts — elevated visual priority */
+.home-alert{
+  background:rgba(224,72,72,.08);border:1px solid rgba(224,72,72,.3);
+  border-left:3px solid var(--red);
+  border-radius:7px;padding:.7rem 1rem;margin-bottom:.5rem;
+  font-size:.86rem;color:var(--text);
+  display:flex;align-items:center;gap:.75rem;
+  cursor:pointer;transition:all .1s;
 }
-.home-job-card:hover{border-color:var(--border3);}
-.home-job-card.has-overdue{border-left:3px solid var(--red);}
-.hjc-name{font-weight:600;font-size:.95rem;color:var(--text);margin-bottom:.35rem;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hjc-meta{font-size:.8rem;color:var(--text3);margin-bottom:.6rem;}
-.hjc-stats{display:flex;gap:.6rem;flex-wrap:wrap;}
-.hjc-stat{font-size:.76rem;font-family:var(--mono);
-  padding:.18rem .5rem;border-radius:4px;border:1px solid var(--border2);color:var(--text2);}
-.hjc-stat.out{color:var(--red);border-color:rgba(224,72,72,.4);background:rgba(224,72,72,.08);}
-.hjc-stat.overdue{color:var(--accent);border-color:rgba(240,160,32,.4);background:rgba(240,160,32,.08);}
+.home-alert:hover{background:rgba(224,72,72,.13);transform:translateX(2px);}
+.home-alert-icon{font-size:1.15rem;flex-shrink:0;color:var(--red);}
+.home-alert-body{flex:1;min-width:0;}
+.home-alert-body strong{font-weight:600;}
+.home-alert-arrow{color:var(--text3);font-size:.9rem;opacity:.55;flex-shrink:0;}
 
-/* Today's schedule */
-.home-today-list{display:flex;flex-direction:column;gap:.5rem;}
-.home-today-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:8px;
-  padding:.75rem 1rem;display:flex;align-items:center;gap:.9rem;cursor:pointer;
-  transition:border-color .12s;
+/* Active jobs — richer cards with status color top border */
+.home-jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:.75rem;}
+.home-job-card{
+  position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:.95rem 1.1rem 1rem;cursor:pointer;transition:all .14s;
+  display:flex;flex-direction:column;gap:.5rem;
+  overflow:hidden;
 }
-.home-today-card:hover{border-color:var(--border3);}
-.htc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.home-job-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--border2);
+}
+.home-job-card:hover{
+  border-color:var(--border3);box-shadow:0 2px 10px rgba(0,0,0,.06);
+  transform:translateY(-1px);
+}
+.home-job-card.has-out::before{background:var(--accent);}
+.home-job-card.has-overdue::before{background:var(--red);}
+.hjc-name{
+  font-weight:650;font-size:1rem;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:.1rem;
+}
+.hjc-meta{
+  font-size:.78rem;color:var(--text3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.hjc-stats{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.15rem;}
+.hjc-stat{
+  font-size:.74rem;font-family:var(--mono);
+  padding:.18rem .55rem;border-radius:12px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);
+}
+.hjc-stat.out{
+  color:var(--accent);background:rgba(240,160,32,.08);
+  border-color:rgba(240,160,32,.4);
+}
+.hjc-stat.overdue{
+  color:var(--red);background:rgba(224,72,72,.08);
+  border-color:rgba(224,72,72,.4);font-weight:500;
+}
+
+/* Today's schedule — TODAY feels more urgent/immediate */
+.home-today-list{display:flex;flex-direction:column;gap:.45rem;}
+.home-today-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:.75rem .95rem;display:flex;align-items:center;gap:.85rem;cursor:pointer;
+  transition:all .12s;
+}
+.home-today-card:hover{border-color:var(--border3);box-shadow:0 1px 6px rgba(0,0,0,.04);transform:translateX(2px);}
+.home-today-card.today{border-left:3px solid var(--accent);}
+.htc-datebox{
+  flex-shrink:0;width:48px;height:48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text2);gap:0;
+}
+.home-today-card.today .htc-datebox{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+}
+.htc-datebox-day{
+  font-size:1.15rem;font-weight:700;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.htc-datebox-mo{
+  font-size:.65rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;opacity:.75;margin-top:.1rem;
+}
 .htc-info{flex:1;min-width:0;}
-.htc-title{font-size:.9rem;font-weight:500;color:var(--text);}
-.htc-meta{font-size:.78rem;color:var(--text3);font-family:var(--mono);margin-top:.1rem;}
-.htc-badge{font-size:.76rem;font-family:var(--mono);padding:.15rem .45rem;
-  border-radius:4px;border:1px solid;flex-shrink:0;}
+.htc-title{
+  font-size:.9rem;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.htc-meta{
+  font-size:.76rem;color:var(--text3);font-family:var(--mono);
+  margin-top:.15rem;letter-spacing:.02em;
+}
+.htc-badge{
+  font-size:.72rem;font-family:var(--mono);padding:.2rem .55rem;
+  border-radius:10px;border:1px solid;flex-shrink:0;white-space:nowrap;
+}
 .htc-badge.out{color:var(--red);border-color:rgba(224,72,72,.4);background:rgba(224,72,72,.08);}
 .htc-badge.in{color:var(--green);border-color:rgba(72,184,92,.4);background:rgba(72,184,92,.08);}
-
-/* Damaged gear alert */
-.home-alert{
-  background:rgba(224,72,72,.1);border:1px solid rgba(224,72,72,.35);
-  border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;
-  font-size:.86rem;color:var(--text2);display:flex;align-items:center;gap:.7rem;
-}
-.home-alert-icon{font-size:1.1rem;flex-shrink:0;}
+.htc-badge.soon{color:var(--accent);border-color:rgba(240,160,32,.4);background:rgba(240,160,32,.08);}
+.htc-badge.later{color:var(--text3);border-color:var(--border2);background:var(--surface2);}
 
 /* Inventory value bar */
-.home-inv-bars{display:flex;flex-direction:column;gap:.5rem;}
-.home-inv-bar-row{display:flex;align-items:center;gap:.75rem;}
-.hib-label{font-size:.82rem;color:var(--text2);width:70px;flex-shrink:0;}
-.hib-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
-.hib-fill{height:100%;border-radius:3px;transition:width .4s ease;}
-.hib-val{font-size:.78rem;font-family:var(--mono);color:var(--text3);width:80px;text-align:right;flex-shrink:0;}
+.home-inv-bars{display:flex;flex-direction:column;gap:.55rem;}
+.home-inv-bar-row{display:flex;align-items:center;gap:.85rem;}
+.hib-label{font-size:.82rem;color:var(--text2);width:84px;flex-shrink:0;}
+.hib-track{flex:1;height:7px;background:var(--surface3);border-radius:4px;overflow:hidden;}
+.hib-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.hib-val{
+  font-size:.78rem;font-family:var(--mono);color:var(--text2);
+  width:82px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;
+}
+.hib-count{
+  font-size:.7rem;color:var(--text3);font-family:var(--mono);
+  width:48px;text-align:right;flex-shrink:0;
+}
 
 /* Recent log on home */
-.home-log-list{display:flex;flex-direction:column;gap:0;}
-.home-log-entry{display:flex;gap:.7rem;padding:.42rem 0;border-bottom:1px solid var(--border);font-size:.82rem;}
+.home-log-list{
+  display:flex;flex-direction:column;gap:0;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  overflow:hidden;
+}
+.home-log-entry{
+  display:flex;gap:.85rem;padding:.55rem .95rem;
+  border-bottom:1px solid var(--border);font-size:.82rem;
+}
 .home-log-entry:last-child{border-bottom:none;}
-.hle-t{font-family:var(--mono);color:var(--text3);flex-shrink:0;font-size:.76rem;padding-top:.1rem;}
+.home-log-entry:hover{background:var(--surface2);}
+.hle-t{font-family:var(--mono);color:var(--text3);flex-shrink:0;font-size:.74rem;padding-top:.12rem;}
 .hle-tx{color:var(--text2);line-height:1.4;}
+
+/* Borrow requests inbox — call-to-action style */
+.home-borrow-req{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--accent);border-radius:8px;
+  padding:.85rem 1rem;margin-bottom:.55rem;
+  display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;
+  transition:all .1s;
+}
+.home-borrow-req:hover{border-color:var(--border3);box-shadow:0 1px 6px rgba(0,0,0,.04);}
+.hbr-info{flex:1;min-width:200px;}
+.hbr-header{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.hbr-name{font-weight:600;font-size:.94rem;color:var(--text);}
+.hbr-email{font-size:.78rem;color:var(--text3);font-family:var(--mono);}
+.hbr-dates{font-size:.8rem;color:var(--text2);margin-top:.3rem;display:flex;align-items:center;gap:.4rem;}
+.hbr-items{font-size:.82rem;color:var(--text2);margin-top:.35rem;line-height:1.45;}
+.hbr-notes{font-size:.78rem;color:var(--text3);margin-top:.25rem;font-style:italic;}
+.hbr-actions{display:flex;gap:.4rem;flex-shrink:0;align-items:center;}
+/* ─── end HOME ─── */
 
 /* ── USER ROLE PILL ── */
 .role-badge{font-family:var(--mono);font-size:.7rem;padding:.15rem .5rem;border-radius:4px;border:1px solid;white-space:nowrap;vertical-align:middle;}
@@ -2760,7 +2916,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.85';
+const GRIP_VERSION = '1.0.86';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -5203,24 +5359,31 @@ function renderHome() {
   const now   = new Date();
   const today = now.toISOString().split('T')[0];
   const hour  = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 5 ? 'Good evening'
+                : hour < 12 ? 'Good morning'
+                : hour < 18 ? 'Good afternoon'
+                : 'Good evening';
+  const emoji = hour < 5 ? '🌙' : hour < 12 ? '☀️' : hour < 18 ? '🌤️' : '🌆';
+  const firstName = (currentUser?.first_name || currentUser?.username || '').split(' ')[0];
   const dateStr  = now.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const isAdmin = currentUser?.role === 'admin';
+  const canEdit = currentUser?.role !== 'viewer';
 
   // ── Global stats ──
-  const allGear    = S.jobs.filter(j=>!j.archived).flatMap(j=>j.days.flatMap(d=>d.gear));
+  const activeJobs = S.jobs.filter(j=>!j.archived);
+  const allGear    = activeJobs.flatMap(j=>j.days.flatMap(d=>d.gear));
   const allOut     = allGear.filter(g=>g.status==='out');
   const allDamaged = allGear.filter(g=>g.condition==='Damaged');
   const invVal     = S.inventory.reduce((s,i)=>s+(i.value||0)*(i.qty||1),0);
-  const gearVal    = allGear.reduce((s,g)=>s+(g.value||0)*(g.qty||1),0);
   const outVal     = allOut.reduce((s,g)=>s+(g.value||0)*(g.qty||1),0);
 
   // ── Today's shoot days ──
-  const todayDays = S.jobs.filter(j=>!j.archived).flatMap(j=>j.days.filter(d=>d.date===today).map(d=>({...d,jobName:j.name,jobId:j.id})));
+  const todayDays = activeJobs.flatMap(j=>j.days.filter(d=>d.date===today).map(d=>({...d,jobName:j.name,jobId:j.id})));
 
   // ── Upcoming days (next 14 days, not today) ──
   const futureDate = new Date(); futureDate.setDate(futureDate.getDate()+14);
   const futureCutoff = futureDate.toISOString().split('T')[0];
-  const upcomingDays = S.jobs.filter(j=>!j.archived).flatMap(j=>j.days
+  const upcomingDays = activeJobs.flatMap(j=>j.days
     .filter(d=>d.date&&d.date>today&&d.date<=futureCutoff)
     .map(d=>({...d,jobName:j.name,jobId:j.id}))
   ).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
@@ -5229,7 +5392,7 @@ function renderHome() {
   const pendingBorrow = S.borrowRequests.filter(r=>r.status==='pending').length;
 
   // ── Overdue: past date, gear still out ──
-  const overdueDays = S.jobs.filter(j=>!j.archived).flatMap(j=>j.days
+  const overdueDays = activeJobs.flatMap(j=>j.days
     .filter(d=>d.date&&d.date<today&&d.gear.some(g=>g.status==='out'))
     .map(d=>({...d,jobName:j.name,jobId:j.id}))
   );
@@ -5239,111 +5402,164 @@ function renderHome() {
     const items=S.inventory.filter(i=>i.cat===cat);
     return {cat, val:items.reduce((s,i)=>s+(i.value||0)*(i.qty||1),0), count:items.length};
   }).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-  const maxCatVal = catVals[0]?.val||1;
 
-  // ── Pluralise helper ──
   const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-  // ── Build HTML ──
+  // ── Empty state — fresh install ──
+  if (!S.jobs.length && !S.inventory.length) {
+    el.innerHTML = `
+      <div class="home-header">
+        <div class="home-header-text">
+          <div class="home-greeting"><span class="home-greeting-emoji">${emoji}</span>Welcome to GRIP${firstName?', '+esc(firstName):''}.</div>
+          <div class="home-date">${dateStr}</div>
+        </div>
+      </div>
+      <div style="max-width:500px;color:var(--text3);font-size:.95rem;line-height:1.7;margin-bottom:1.5rem">
+        No jobs or inventory yet. Create your first job to start tracking gear.
+      </div>
+      <div class="home-actions">
+        <button class="home-action-btn primary" onclick="openNewJobModal();switchView('jobs')"><span class="home-action-icon">＋</span> New Job</button>
+        <button class="home-action-btn" onclick="switchView('inventory')"><span class="home-action-icon">📦</span> Add Inventory</button>
+      </div>
+      ${renderViewFooter()}`;
+    return;
+  }
+
   let html = '';
 
-  // Greeting
-  html += `<div class="home-greeting">${greeting}.</div>`;
-  html += `<div class="home-date">${dateStr}</div>`;
-
-  // KPI row
-  html += `<div class="home-kpi-row">
-    <div class="home-kpi">
-      <div class="home-kpi-val amber">${S.jobs.length}</div>
-      <div class="home-kpi-lbl">${S.jobs.length!==1?'Jobs':'Job'}</div>
-      <div class="home-kpi-sub">${pl(S.jobs.flatMap(j=>j.days).length,'day')} total</div>
+  // ── Header block: greeting + primary actions ──
+  html += `<div class="home-header">
+    <div class="home-header-text">
+      <div class="home-greeting"><span class="home-greeting-emoji">${emoji}</span>${greeting}${firstName?', '+esc(firstName):''}.</div>
+      <div class="home-date">${dateStr}</div>
     </div>
-    <div class="home-kpi">
-      <div class="home-kpi-val ${allOut.length?'red':'green'}">${allOut.length}</div>
-      <div class="home-kpi-lbl">Item${allOut.length!==1?'s':''} Out</div>
-      <div class="home-kpi-sub">${outVal?fmt$(outVal)+' value':'—'}</div>
-    </div>
-    <div class="home-kpi">
-      <div class="home-kpi-val">${S.inventory.length}</div>
-      <div class="home-kpi-lbl">Inventory Item${S.inventory.length!==1?'s':''}</div>
-      <div class="home-kpi-sub">${fmt$(invVal)} total value</div>
-    </div>
-    <div class="home-kpi">
-      <div class="home-kpi-val ${overdueDays.length?'red':''}">${overdueDays.length}</div>
-      <div class="home-kpi-lbl">Overdue Day${overdueDays.length!==1?'s':''}</div>
-      <div class="home-kpi-sub">${overdueDays.length?'Gear still out':'All clear'}</div>
-    </div>
-
-    <div class="home-kpi" onclick="switchView('borrow')" style="cursor:pointer">
-      <div class="home-kpi-val ${pendingBorrow?'amber':''}">${pendingBorrow}</div>
-      <div class="home-kpi-lbl">Borrow Request${pendingBorrow!==1?'s':''}</div>
-      <div class="home-kpi-sub">${S.borrowRequests.length} total received</div>
-    </div>
+    ${canEdit ? `<div class="home-header-actions">
+      <button class="home-action-btn primary" onclick="openNewJobModal();switchView('jobs')"><span class="home-action-icon">＋</span> New Job</button>
+      <button class="home-action-btn" onclick="switchView('calendar')"><span class="home-action-icon">📅</span> Calendar</button>
+    </div>` : ''}
   </div>`;
 
-  // Alerts
+  // ── Alerts (overdue, damaged) — elevated priority at top ──
   if (overdueDays.length) {
     overdueDays.slice(0,3).forEach(d=>{
       const outN = d.gear.filter(g=>g.status==='out').length;
-      html += `<div class="home-alert" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')" style="cursor:pointer">
+      html += `<div class="home-alert" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')">
         <span class="home-alert-icon">⚠</span>
-        <span><strong>${d.jobName} — ${d.label}</strong> (${fmtDate(d.date)}) has ${pl(outN,'item')} still loaded out.</span>
+        <span class="home-alert-body"><strong>${esc(d.jobName)} — ${esc(d.label)}</strong> (${fmtDate(d.date)}) has ${pl(outN,'item')} still loaded out.</span>
+        <span class="home-alert-arrow">›</span>
       </div>`;
     });
   }
   if (allDamaged.length) {
-    html += `<div class="home-alert">
+    html += `<div class="home-alert" onclick="switchView('inventory')">
       <span class="home-alert-icon">🔧</span>
-      <span>${pl(allDamaged.length,'item')} marked <strong>Damaged</strong> across all jobs.</span>
+      <span class="home-alert-body">${pl(allDamaged.length,'item')} marked <strong>Damaged</strong> across active jobs.</span>
+      <span class="home-alert-arrow">›</span>
     </div>`;
   }
 
-  // Pending borrow requests — prominent inbox-style section
-  if(pendingBorrow > 0){
+  // ── KPI row — clickable tiles ──
+  html += `<div class="home-kpi-row">
+    <div class="home-kpi" onclick="switchView('jobs')">
+      <div class="home-kpi-top">
+        <span class="home-kpi-icon">🎬</span>
+        <span class="home-kpi-lbl">Active ${activeJobs.length===1?'Job':'Jobs'}</span>
+      </div>
+      <div class="home-kpi-val amber">${activeJobs.length}</div>
+      <div class="home-kpi-sub">${pl(activeJobs.flatMap(j=>j.days).length,'day')} total</div>
+    </div>
+    <div class="home-kpi ${allOut.length?'is-warn':''}" onclick="switchView('jobs')">
+      <div class="home-kpi-top">
+        <span class="home-kpi-icon">📤</span>
+        <span class="home-kpi-lbl">Item${allOut.length!==1?'s':''} Out</span>
+      </div>
+      <div class="home-kpi-val ${allOut.length?'amber':'green'}">${allOut.length}</div>
+      <div class="home-kpi-sub">${outVal?fmt$(outVal)+' value':'All gear returned'}</div>
+    </div>
+    <div class="home-kpi" onclick="switchView('inventory')">
+      <div class="home-kpi-top">
+        <span class="home-kpi-icon">📦</span>
+        <span class="home-kpi-lbl">Inventory</span>
+      </div>
+      <div class="home-kpi-val">${S.inventory.length}</div>
+      <div class="home-kpi-sub">${fmt$(invVal)} total value</div>
+    </div>
+    <div class="home-kpi ${overdueDays.length?'is-alert':''}" onclick="switchView('jobs')">
+      <div class="home-kpi-top">
+        <span class="home-kpi-icon">${overdueDays.length?'⚠':'✓'}</span>
+        <span class="home-kpi-lbl">Overdue Day${overdueDays.length!==1?'s':''}</span>
+      </div>
+      <div class="home-kpi-val ${overdueDays.length?'red':'green'}">${overdueDays.length}</div>
+      <div class="home-kpi-sub">${overdueDays.length?'Gear still out':'All clear'}</div>
+    </div>
+    ${isAdmin ? `<div class="home-kpi ${pendingBorrow?'is-warn':''}" onclick="switchView('borrow')">
+      <div class="home-kpi-top">
+        <span class="home-kpi-icon">📥</span>
+        <span class="home-kpi-lbl">Borrow Request${pendingBorrow!==1?'s':''}</span>
+      </div>
+      <div class="home-kpi-val ${pendingBorrow?'amber':''}">${pendingBorrow}</div>
+      <div class="home-kpi-sub">${S.borrowRequests.length} total received</div>
+    </div>` : ''}
+  </div>`;
+
+  // ── Pending borrow requests — inbox-style section ──
+  if(pendingBorrow > 0 && isAdmin){
     const pending = S.borrowRequests.filter(r=>r.status==='pending');
     html += `<div class="home-section">
-      <div class="home-section-title" style="display:flex;align-items:center;gap:.5rem">
-        <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0">${pending.length}</span>
-        Borrow Request${pending.length!==1?'s':''} Awaiting Review
+      <div class="home-section-head">
+        <div class="home-section-title">
+          📥 Pending Borrow Requests
+          <span class="hst-count">${pending.length}</span>
+        </div>
+        <button class="home-section-action" onclick="switchView('borrow')">View all →</button>
       </div>`;
     const fmt = ds => new Date(ds+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
     pending.forEach(req => {
       const itemList = fmtBorrowItems(req.items||[], true);
       const days = Math.round((new Date(req.end_date+'T12:00')-new Date(req.start_date+'T12:00'))/86400000)+1;
-      html += `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:.85rem 1rem;margin-bottom:.5rem;display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:600;font-size:.95rem;color:var(--text)">${req.contact_name}
-            <span style="font-weight:400;font-size:.8rem;color:var(--text3);margin-left:.5rem">${req.contact_email}</span>
+      html += `<div class="home-borrow-req">
+        <div class="hbr-info">
+          <div class="hbr-header">
+            <span class="hbr-name">${esc(req.contact_name)}</span>
+            <span class="hbr-email">${esc(req.contact_email)}</span>
           </div>
-          <div style="font-size:.8rem;color:var(--text3);margin-top:.2rem">
-            📅 ${fmt(req.start_date)} → ${fmt(req.end_date)} · ${days} day${days!==1?'s':''}
-          </div>
-          <div style="font-size:.82rem;color:var(--text2);margin-top:.35rem">📦 ${itemList}</div>
-          ${req.notes?`<div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;font-style:italic">"${req.notes}"</div>`:''}
+          <div class="hbr-dates">📅 ${fmt(req.start_date)} → ${fmt(req.end_date)} · ${days} day${days!==1?'s':''}</div>
+          <div class="hbr-items">📦 ${itemList}</div>
+          ${req.notes?`<div class="hbr-notes">"${esc(req.notes)}"</div>`:''}
         </div>
-        <div style="display:flex;gap:.4rem;flex-shrink:0;align-items:center">
+        <div class="hbr-actions">
           <button class="btn btn-in btn-sm" onclick="openResolveBorrow('${req.id}')">✓ Approve</button>
           <button class="btn btn-danger btn-sm" onclick="openResolveBorrow('${req.id}')">✕ Deny</button>
         </div>
       </div>`;
     });
-    html += `<button class="btn btn-ghost btn-sm" style="margin-top:.25rem" onclick="switchView('bookings')">View all borrow requests →</button>
-    </div>`;
+    html += `</div>`;
   }
 
-
-
-  // Today's shoot days
+  // ── Today's shoot days ──
   if (todayDays.length) {
-    html += `<div class="home-section"><div class="home-section-title">Today</div><div class="home-today-list">`;
+    html += `<div class="home-section">
+      <div class="home-section-head">
+        <div class="home-section-title">
+          🎯 Today
+          <span class="hst-count">${todayDays.length}</span>
+        </div>
+      </div>
+      <div class="home-today-list">`;
     todayDays.forEach(d=>{
       const outN=d.gear.filter(g=>g.status==='out').length;
-      const inN=d.gear.length-outN;
-      html+=`<div class="home-today-card" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')">
-        <div class="htc-dot" style="background:var(--accent)"></div>
+      const dt = new Date(d.date+'T12:00');
+      const mo = dt.toLocaleDateString('en-CA',{month:'short'}).toUpperCase();
+      const dayN = dt.getDate();
+      html+=`<div class="home-today-card today" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')">
+        <div class="htc-datebox">
+          <div class="htc-datebox-day">${dayN}</div>
+          <div class="htc-datebox-mo">${mo}</div>
+        </div>
         <div class="htc-info">
-          <div class="htc-title">${d.jobName} — ${d.label}</div>
-          <div class="htc-meta">${d.location||'No location'} · ${pl(d.gear.length,'item')}</div>
+          <div class="htc-title">${esc(d.jobName)} — ${esc(d.label)}</div>
+          <div class="htc-meta">${esc(d.location||'No location')} · ${pl(d.gear.length,'item')}</div>
         </div>
         ${outN?`<span class="htc-badge out">${pl(outN,'item')} out</span>`:`<span class="htc-badge in">All in</span>`}
       </div>`;
@@ -5351,34 +5567,60 @@ function renderHome() {
     html += `</div></div>`;
   }
 
-  // Upcoming days
+  // ── Upcoming days ──
   if (upcomingDays.length) {
-    html += `<div class="home-section"><div class="home-section-title">Upcoming — Next 14 Days</div><div class="home-today-list">`;
+    html += `<div class="home-section">
+      <div class="home-section-head">
+        <div class="home-section-title">
+          📅 Upcoming
+          <span class="hst-count">${upcomingDays.length}</span>
+        </div>
+        <button class="home-section-action" onclick="switchView('calendar')">Open calendar →</button>
+      </div>
+      <div class="home-today-list">`;
     upcomingDays.forEach(d=>{
       const daysAway=Math.round((new Date(d.date+'T12:00')-now)/(86400000));
+      const dt = new Date(d.date+'T12:00');
+      const mo = dt.toLocaleDateString('en-CA',{month:'short'}).toUpperCase();
+      const dayN = dt.getDate();
+      const badgeClass = daysAway <= 3 ? 'soon' : 'later';
+      const badgeText = daysAway===1 ? 'Tomorrow' : 'In '+pl(daysAway,'day');
       html+=`<div class="home-today-card" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')">
-        <div class="htc-dot" style="background:var(--border3)"></div>
-        <div class="htc-info">
-          <div class="htc-title">${d.jobName} — ${d.label}</div>
-          <div class="htc-meta">${fmtDate(d.date)}${d.location?' · '+d.location:''}</div>
+        <div class="htc-datebox">
+          <div class="htc-datebox-day">${dayN}</div>
+          <div class="htc-datebox-mo">${mo}</div>
         </div>
-        <span class="htc-badge in" style="color:var(--text3);border-color:var(--border2);background:none;">${daysAway===1?'Tomorrow':'In '+pl(daysAway,'day')}</span>
+        <div class="htc-info">
+          <div class="htc-title">${esc(d.jobName)} — ${esc(d.label)}</div>
+          <div class="htc-meta">${fmtDate(d.date)}${d.location?' · '+esc(d.location):''}</div>
+        </div>
+        <span class="htc-badge ${badgeClass}">${badgeText}</span>
       </div>`;
     });
     html += `</div></div>`;
   }
 
-  // Active jobs
-  if (S.jobs.filter(j=>!j.archived).length) {
-    html += `<div class="home-section"><div class="home-section-title">Active Jobs</div><div class="home-jobs-grid">`;
-    S.jobs.filter(j=>!j.archived).forEach(j=>{
+  // ── Active jobs ──
+  if (activeJobs.length) {
+    html += `<div class="home-section">
+      <div class="home-section-head">
+        <div class="home-section-title">
+          🎬 Active Jobs
+          <span class="hst-count">${activeJobs.length}</span>
+        </div>
+        <button class="home-section-action" onclick="switchView('jobs')">View all →</button>
+      </div>
+      <div class="home-jobs-grid">`;
+    activeJobs.forEach(j=>{
       const totalGear=j.days.flatMap(d=>d.gear);
       const outN=totalGear.filter(g=>g.status==='out').length;
       const jOverdue=j.days.filter(d=>d.date&&d.date<today&&d.gear.some(g=>g.status==='out')).length;
       const jVal=totalGear.reduce((s,g)=>s+(g.value||0)*(g.qty||1),0);
-      html+=`<div class="home-job-card ${jOverdue?'has-overdue':''}" onclick="selectJob('${j.id}');switchView('jobs')">
-        <div class="hjc-name">${j.name}</div>
-        <div class="hjc-meta">${j.director||''}${j.co?' · '+j.co:''}</div>
+      const cardCls = jOverdue ? 'has-overdue' : (outN ? 'has-out' : '');
+      const metaStr = [j.director, j.co].filter(Boolean).join(' · ') || '—';
+      html+=`<div class="home-job-card ${cardCls}" onclick="selectJob('${j.id}');switchView('jobs')">
+        <div class="hjc-name">${esc(j.name)}</div>
+        <div class="hjc-meta">${esc(metaStr)}</div>
         <div class="hjc-stats">
           <span class="hjc-stat">${pl(j.days.length,'day')}</span>
           <span class="hjc-stat">${pl(totalGear.length,'item')}</span>
@@ -5391,41 +5633,40 @@ function renderHome() {
     html += `</div></div>`;
   }
 
-  // Inventory value breakdown
+  // ── Inventory value breakdown ──
   if (catVals.length) {
-    html += `<div class="home-section"><div class="home-section-title">Inventory Value by Category</div><div class="home-inv-bars">`;
+    html += `<div class="home-section">
+      <div class="home-section-head">
+        <div class="home-section-title">
+          📊 Inventory by Category
+        </div>
+        <button class="home-section-action" onclick="switchView('inventory')">Browse inventory →</button>
+      </div>
+      <div class="home-inv-bars">`;
     catVals.forEach(({cat,val,count})=>{
       const pct=Math.round((val/invVal)*100);
       const catClass=cat.toLowerCase().replace(/ /g,'-');
       html+=`<div class="home-inv-bar-row">
-        <div class="hib-label" style="font-size:.8rem;color:var(--text2)">${cat}</div>
+        <div class="hib-label">${esc(cat)}</div>
         <div class="hib-track"><div class="hib-fill" style="width:${pct}%;background:var(--c-${catClass})"></div></div>
+        <div class="hib-count">${pl(count,'item')}</div>
         <div class="hib-val">${fmt$(val)}</div>
       </div>`;
     });
     html += `</div></div>`;
   }
 
-  // Recent activity
+  // ── Recent activity ──
   if (S.log.length) {
-    html += `<div class="home-section"><div class="home-section-title">Recent Activity</div><div class="home-log-list">`;
+    html += `<div class="home-section">
+      <div class="home-section-head">
+        <div class="home-section-title">🕒 Recent Activity</div>
+      </div>
+      <div class="home-log-list">`;
     S.log.slice(0,8).forEach(e=>{
       html+=`<div class="home-log-entry"><span class="hle-t">${e.t}</span><span class="hle-tx">${e.html}</span></div>`;
     });
     html += `</div></div>`;
-  }
-
-  // Empty state
-  if (!S.jobs.length && !S.inventory.length) {
-    html = `<div class="home-greeting">Welcome to GRIP.</div>
-    <div class="home-date">${dateStr}</div>
-    <div style="margin-top:2rem;color:var(--text3);font-size:.95rem;line-height:1.7">
-      No jobs or inventory yet.<br>Create your first job to get started.
-    </div>
-    <div class="home-actions" style="margin-top:1.5rem">
-      <button class="home-action-btn primary" onclick="openNewJobModal();switchView('jobs')"><span>＋</span> New Job</button>
-      <button class="home-action-btn" onclick="switchView('inventory')"><span>📦</span> Add Inventory</button>
-    </div>`;
   }
 
   html += renderViewFooter();
