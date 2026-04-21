@@ -2368,7 +2368,12 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <div class="fg"><label>Phone</label><input id="ce-phone" type="tel"></div>
   </div>
   <div class="frow">
-    <div class="fg"><label>Company</label><input id="ce-company" type="text" list="company-datalist" autocomplete="off"></div>
+    <div class="fg">
+      <label>Company</label>
+      <select id="ce-company" onchange="onContactCompanyChange(this)">
+        <option value="">— None —</option>
+      </select>
+    </div>
     <div class="fg"></div>
   </div>
   <div class="fg"><label>Notes</label><textarea id="ce-notes" rows="2"></textarea></div>
@@ -2390,7 +2395,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   <div class="fg"><label>Address</label><textarea id="pc-address" rows="2" placeholder="Street, City, State ZIP, Country"></textarea></div>
   <div class="fg"><label>Notes</label><textarea id="pc-notes" rows="2"></textarea></div>
   <div class="modal-foot">
-    <button class="btn btn-ghost" onclick="closeModal('m-company-edit')">Cancel</button>
+    <button class="btn btn-ghost" onclick="cancelCompanyEdit()">Cancel</button>
     <button class="btn btn-accent" id="pc-save-btn" onclick="saveCompany()">Save Company</button>
   </div>
 </div></div>
@@ -2668,7 +2673,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.83';
+const GRIP_VERSION = '1.0.84';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -5896,13 +5901,49 @@ const JOB_ROLES = ['Director','Producer','Executive Producer','DP','Gaffer',
   'Sound Mixer','Boom Operator','Art Director','Wardrobe','Hair/Makeup',
   'Production Designer','Stills Photographer','Client','Agency','Other'];
 
+// ── Company select helpers for the contact modal ─────────
+// Populate the ce-company <select> with all companies + an "Add new…" option.
+// `selected` is the currently-chosen company name (if any). Preserves a
+// "ghost" option for legacy contacts whose company doesn't exist as a record yet.
+function populateContactCompanySelect(selected) {
+  const sel = document.getElementById('ce-company');
+  if(!sel) return;
+  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const companyNames = new Set(companies.map(c => c.name));
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  let html = '<option value="">— None —</option>';
+  companies.forEach(co => {
+    html += `<option value="${esc(co.name)}"${selected===co.name?' selected':''}>${esc(co.name)}</option>`;
+  });
+  // Legacy: contact has a company name that's not yet a record
+  if(selected && !companyNames.has(selected)){
+    html += `<option value="${esc(selected)}" selected>${esc(selected)} (unlinked)</option>`;
+  }
+  html += '<option value="__new__">＋ Add new company…</option>';
+  sel.innerHTML = html;
+}
+
+// Triggered when the company <select> changes. If user picks "Add new…",
+// open the company modal; on save it will re-select the new company.
+function onContactCompanyChange(sel) {
+  if(sel.value !== '__new__') return;
+  sel.value = ''; // reset while company modal is open
+  companyModalReturnsToContact = true;
+  openAddCompany();
+}
+
+// Set to true when the company modal was opened from the contact modal —
+// saveCompany() re-selects the new company and the contact modal stays open.
+let companyModalReturnsToContact = false;
+
 function openAddContact() {
   editingContactId = null;
   document.getElementById('m-contact-edit-title').textContent = 'Add Contact';
-  ['ce-name','ce-email','ce-phone','ce-company','ce-role','ce-notes']
+  ['ce-name','ce-email','ce-phone','ce-role','ce-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('ce-save-btn').textContent = 'Add Contact';
-  refreshCompanyDatalist();
+  populateContactCompanySelect('');
   openModal('m-contact-edit');
 }
 
@@ -5913,22 +5954,23 @@ function openEditContact(id) {
   document.getElementById('ce-name').value    = ct.name    || '';
   document.getElementById('ce-email').value   = ct.email   || '';
   document.getElementById('ce-phone').value   = ct.phone   || '';
-  document.getElementById('ce-company').value = ct.company || '';
   document.getElementById('ce-role').value    = ct.role    || '';
   document.getElementById('ce-notes').value   = ct.notes   || '';
   document.getElementById('ce-save-btn').textContent = 'Save Changes';
-  refreshCompanyDatalist();
+  populateContactCompanySelect(ct.company || '');
   openModal('m-contact-edit');
 }
 
 async function saveContact() {
   const name = document.getElementById('ce-name').value.trim();
   if(!name){ toast('Name is required.'); return; }
+  let companyVal = document.getElementById('ce-company').value.trim();
+  if(companyVal === '__new__') companyVal = ''; // sentinel shouldn't persist
   const payload = {
     name,
     email:   document.getElementById('ce-email').value.trim(),
     phone:   document.getElementById('ce-phone').value.trim(),
-    company: document.getElementById('ce-company').value.trim(),
+    company: companyVal,
     role:    document.getElementById('ce-role').value.trim(),
     notes:   document.getElementById('ce-notes').value.trim(),
   };
@@ -5989,6 +6031,16 @@ function openEditCompany(id) {
   openModal('m-company-edit');
 }
 
+function cancelCompanyEdit() {
+  closeModal('m-company-edit');
+  // If the company modal was opened from inside the contact modal, refresh
+  // the contact's company select so it's at least in sync with current state.
+  if(companyModalReturnsToContact){
+    companyModalReturnsToContact = false;
+    populateContactCompanySelect(document.getElementById('ce-company')?.value || '');
+  }
+}
+
 async function saveCompany() {
   const name = document.getElementById('pc-name').value.trim();
   if(!name){ toast('Company name is required.'); return; }
@@ -6019,7 +6071,16 @@ async function saveCompany() {
   }
   closeModal('m-company-edit');
   refreshCompanyDatalist();
-  if(activeView==='companies') renderCompaniesView();
+
+  // If this company was created from inside the contact modal, re-populate
+  // the contact's company <select> with the new company selected.
+  if(companyModalReturnsToContact){
+    companyModalReturnsToContact = false;
+    populateContactCompanySelect(name);
+    return;
+  }
+
+  if(activeView==='contacts') renderDirectoryView();
 }
 
 async function deleteCompany(id) {
