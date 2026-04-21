@@ -326,18 +326,7 @@ header{
 .rsort-btn:last-child{border-right:none;}
 .rsort-btn.active{color:var(--accent);background:var(--accent-dim);}
 .rsort-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
-/* Inventory sort/search bar */
-.inv-controls{
-  display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;
-  border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;
-}
-.inv-sort-btn{
-  background:none;border:1px solid var(--border2);border-radius:5px;
-  color:var(--text3);font-family:var(--ui);font-size:.78rem;
-  padding:.28rem .55rem;cursor:pointer;transition:all .1s;white-space:nowrap;
-}
-.inv-sort-btn.active{color:var(--accent);border-color:var(--accent);background:var(--accent-dim);}
-.inv-sort-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+/* Inventory sort/search bar — see detailed rules further below */
 .rail-label{font-size:.82rem;font-weight:400;color:var(--text3);} /* legacy — superseded by .rail-head-label */
 .rail-body{flex:1;overflow-y:auto;}
 .rail-item{
@@ -629,30 +618,143 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .cat-badge.cat-Cable{color:var(--c-cable);background:rgba(136,136,136,.1);border-color:rgba(136,136,136,.3);}
 .cat-badge.cat-Other{color:var(--c-other);background:rgba(144,144,144,.1);border-color:rgba(144,144,144,.3);}
 
-/* inventory */
+/* ── INVENTORY ── */
 .inv-body{flex:1;display:flex;overflow:hidden;}
-.inv-cats{width:175px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto;}
+
+/* Category rail */
+.inv-cats{
+  width:200px;background:var(--surface);border-right:1px solid var(--border);
+  flex-shrink:0;overflow-y:auto;
+}
+.inv-cats-head{
+  padding:.7rem 1rem .6rem;
+  font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);border-bottom:1px solid var(--border);
+  background:var(--surface);position:sticky;top:0;z-index:1;
+}
 .inv-cat-btn{
-  padding:.7rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;
-  display:flex;align-items:center;gap:.5rem;transition:background .08s;
-  border-left:3px solid transparent;
+  padding:.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;gap:.55rem;transition:all .1s;
+  border-left:3px solid transparent;position:relative;
 }
 .inv-cat-btn:hover{background:var(--surface2);}
 .inv-cat-btn.active{background:var(--accent-dim);border-left-color:var(--accent);}
 .inv-cat-btn.active .inv-cat-name{color:var(--accent);font-weight:600;}
-.inv-cat-name{flex:1;font-weight:400;font-size:.95rem;}
-.inv-cat-count{font-size:.82rem;color:var(--text3);}
+.inv-cat-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 0 2px var(--surface);
+}
+.inv-cat-btn.active .inv-cat-dot{box-shadow:0 0 0 2px var(--accent-dim);}
+.inv-cat-btn.all{font-weight:500;}
+.inv-cat-all-icon{
+  width:14px;height:14px;border-radius:3px;flex-shrink:0;
+  background:linear-gradient(135deg, var(--c-camera), var(--c-lens), var(--c-light), var(--c-grip));
+  opacity:.65;
+}
+.inv-cat-name{flex:1;font-size:.9rem;color:var(--text2);}
+.inv-cat-btn.active .inv-cat-name{color:var(--accent);}
+.inv-cat-count{
+  font-size:.72rem;font-family:var(--mono);
+  padding:.08rem .45rem;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text3);
+}
+.inv-cat-btn.active .inv-cat-count{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+}
+
+/* Main panel */
 .inv-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Summary strip above list */
+.inv-summary{
+  display:flex;align-items:center;gap:1.5rem;
+  padding:.65rem 1.1rem;
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  flex-shrink:0;flex-wrap:wrap;
+}
+.inv-summary-stat{display:flex;flex-direction:column;gap:.1rem;}
+.inv-summary-val{
+  font-size:1.05rem;font-weight:700;color:var(--text);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;
+}
+.inv-summary-lbl{
+  font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);
+}
+.inv-summary-div{
+  width:1px;height:22px;background:var(--border);align-self:center;
+}
+
+/* Sort controls */
+.inv-controls{
+  display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;
+  border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;
+  flex-wrap:wrap;
+}
+.inv-controls-label{
+  font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);margin-right:.15rem;
+}
+.inv-sort-btn{
+  background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text2);font-family:var(--ui);font-size:.78rem;font-weight:500;
+  padding:.32rem .7rem;cursor:pointer;transition:all .1s;white-space:nowrap;
+}
+.inv-sort-btn.active{color:#fff;border-color:var(--accent);background:var(--accent);font-weight:600;}
+.inv-sort-btn:hover:not(.active){background:var(--surface3);color:var(--text);border-color:var(--border3);}
+
+/* Item list */
 .inv-scroll{flex:1;overflow-y:auto;}
 .inv-item{
-  padding:.7rem 1rem;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:.75rem;transition:background .08s;
+  padding:.75rem 1.1rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.85rem;transition:background .08s;
+  position:relative;
 }
 .inv-item:hover{background:var(--surface2);}
+.inv-item:hover .inv-item-actions{opacity:1;}
+.inv-item-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 0 2px var(--surface);
+}
+.inv-item:hover .inv-item-dot{box-shadow:0 0 0 2px var(--surface2);}
 .inv-item-info{flex:1;min-width:0;}
-.inv-item-name{font-weight:400;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.inv-item-sub{font-size:.84rem;color:var(--text3);margin-top:.1rem;}
-.inv-item-val{font-family:var(--mono);font-size:.84rem;color:var(--text2);text-align:right;flex-shrink:0;}
+.inv-item-name{
+  font-weight:600;font-size:.95rem;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:.5rem;
+}
+.inv-item-sub{
+  font-size:.78rem;color:var(--text3);margin-top:.2rem;
+  display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;
+}
+.inv-item-sub-chip{
+  font-family:var(--mono);font-size:.72rem;
+  padding:.05rem .4rem;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text2);
+}
+.inv-item:hover .inv-item-sub-chip{background:var(--surface);}
+.inv-item-value-block{
+  display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;
+  flex-shrink:0;padding-right:.5rem;
+}
+.inv-item-val{
+  font-family:var(--mono);font-size:.92rem;font-weight:600;
+  color:var(--text);font-variant-numeric:tabular-nums;
+}
+.inv-item-qty{
+  font-size:.72rem;color:var(--text3);font-family:var(--mono);
+}
+.inv-item-actions{
+  display:flex;gap:.35rem;flex-shrink:0;
+  opacity:.4;transition:opacity .12s;
+}
+
+/* Empty state */
+.inv-empty{
+  padding:3rem 1rem;text-align:center;color:var(--text3);
+}
+.inv-empty-icon{font-size:2.2rem;opacity:.5;margin-bottom:.5rem;}
 
 /* modals */
 .overlay{
@@ -2286,10 +2388,11 @@ td.ta .btn+.btn{margin-left:.25rem;}
         <div class="topbar">
           <div class="topbar-title">Master Inventory</div>
           <button class="btn btn-accent btn-sm" onclick="resetInvModal();openModal('m-inv-add')">+ Add Item</button>
-          <input type="text" class="search" id="inv-search" placeholder="Search name, asset ID, notes…" style="max-width:200px" oninput="renderInventoryView()">
+          <input type="text" class="search" id="inv-search" placeholder="Search name, asset ID, notes…" style="max-width:220px" oninput="renderInventoryView()">
         </div>
+        <div class="inv-summary" id="inv-summary"></div>
         <div class="inv-controls">
-          <span style="font-size:.78rem;color:var(--text3);margin-right:.2rem">Sort:</span>
+          <span class="inv-controls-label">Sort</span>
           <button class="inv-sort-btn active" onclick="setInvSort('name',this)">Name</button>
           <button class="inv-sort-btn" onclick="setInvSort('cat',this)">Category</button>
           <button class="inv-sort-btn" onclick="setInvSort('value',this)">Value</button>
@@ -2963,7 +3066,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.87';
+const GRIP_VERSION = '1.0.88';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -4095,12 +4198,24 @@ function renderInventoryView() {
   const el=document.getElementById('inv-scroll');if(!el)return;
   const cats=document.getElementById('inv-cat-rail');
   const allCats=['All',...CATS];
-  if(cats) cats.innerHTML=allCats.map(cat=>`
-    <div class="inv-cat-btn ${cat===invCatFilter?'active':''}" onclick="setInvCat('${cat}')">
-      ${cat!=='All'?`<span class="cat-dot cat-${cat}"></span>`:''}
-      <span class="inv-cat-name">${cat}</span>
-      <span class="inv-cat-count">${cat==='All'?S.inventory.length:S.inventory.filter(i=>i.cat===cat).length}</span>
-    </div>`).join('');
+
+  // Build category rail
+  if(cats) {
+    let railHtml = '<div class="inv-cats-head">Categories</div>';
+    allCats.forEach(cat => {
+      const count = cat==='All' ? S.inventory.length : S.inventory.filter(i=>i.cat===cat).length;
+      const iconHtml = cat==='All'
+        ? `<span class="inv-cat-all-icon"></span>`
+        : `<span class="inv-cat-dot" style="background:var(--c-${cat.toLowerCase().replace(/ /g,'-')})"></span>`;
+      railHtml += `<div class="inv-cat-btn ${cat==='All'?'all':''} ${cat===invCatFilter?'active':''}" onclick="setInvCat('${cat}')">
+        ${iconHtml}
+        <span class="inv-cat-name">${cat}</span>
+        <span class="inv-cat-count">${count}</span>
+      </div>`;
+    });
+    cats.innerHTML = railHtml;
+  }
+
   const q=(document.getElementById('inv-search')?.value||'').toLowerCase();
   let items=invCatFilter==='All'?[...S.inventory]:S.inventory.filter(i=>i.cat===invCatFilter);
   if(q)items=items.filter(i=>i.name.toLowerCase().includes(q)||(i.assetId||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q)||(i.cat||'').toLowerCase().includes(q));
@@ -4111,20 +4226,74 @@ function renderInventoryView() {
     if(invSort==='qty')   return b.qty-a.qty;
     return 0;
   });
-  if(!items.length){el.innerHTML=`<div class="empty">${q?'No matches':'No items'}</div>`;return;}
-  el.innerHTML=items.map(item=>`
-    <div class="inv-item">
-      <span class="cat-dot cat-${item.cat}"></span>
+
+  // Summary strip
+  const sumEl = document.getElementById('inv-summary');
+  if(sumEl) {
+    const totalItems = items.length;
+    const totalUnits = items.reduce((s,i)=>s+(i.qty||1),0);
+    const totalValue = items.reduce((s,i)=>s+((i.value||0)*(i.qty||1)),0);
+    const damaged = items.filter(i=>i.condition==='Damaged').length;
+    const scope = invCatFilter==='All' ? 'Total' : invCatFilter;
+    sumEl.innerHTML = `
+      <div class="inv-summary-stat">
+        <div class="inv-summary-val">${totalItems}</div>
+        <div class="inv-summary-lbl">${scope} Items</div>
+      </div>
+      <div class="inv-summary-div"></div>
+      <div class="inv-summary-stat">
+        <div class="inv-summary-val">${totalUnits}</div>
+        <div class="inv-summary-lbl">Units</div>
+      </div>
+      <div class="inv-summary-div"></div>
+      <div class="inv-summary-stat">
+        <div class="inv-summary-val">${totalValue?fmt$(totalValue):'—'}</div>
+        <div class="inv-summary-lbl">Total Value</div>
+      </div>
+      ${damaged ? `<div class="inv-summary-div"></div>
+      <div class="inv-summary-stat">
+        <div class="inv-summary-val" style="color:var(--red)">${damaged}</div>
+        <div class="inv-summary-lbl">Damaged</div>
+      </div>` : ''}
+    `;
+  }
+
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  if(!items.length){
+    el.innerHTML=`<div class="inv-empty">
+      <div class="inv-empty-icon">📦</div>
+      <div>${q?'No items match your search':(invCatFilter==='All'?'No inventory items yet':'No items in '+invCatFilter)}</div>
+    </div>`+`<div style="padding:0 1rem">${renderViewFooter()}</div>`;
+    return;
+  }
+  el.innerHTML=items.map(item=>{
+    const catClass = (item.cat||'Other').toLowerCase().replace(/ /g,'-');
+    const condBadge = item.condition && item.condition!=='Good'
+      ? ` <span class="cond-badge cond-${item.condition}">${esc(item.condition)}</span>` : '';
+    const subChips = [];
+    if(item.assetId) subChips.push(`<span class="inv-item-sub-chip">${esc(item.assetId)}</span>`);
+    if(invCatFilter==='All') subChips.push(`<span class="inv-item-sub-chip" style="color:var(--c-${catClass})">${esc(item.cat||'Other')}</span>`);
+    const notesText = item.notes ? esc(item.notes) : '';
+    return `<div class="inv-item">
+      <span class="inv-item-dot" style="background:var(--c-${catClass})"></span>
       <div class="inv-item-info">
-        <div class="inv-item-name">${item.name}${item.condition&&item.condition!=='Good'?` <span class="cond-badge cond-${item.condition}">${item.condition}</span>`:''}</div>
-        <div class="inv-item-sub">${item.assetId||''}${item.notes?' · '+item.notes:''} · qty ${item.qty}</div>
+        <div class="inv-item-name">${esc(item.name)}${condBadge}</div>
+        <div class="inv-item-sub">
+          ${subChips.join('')}
+          ${notesText?`<span style="color:var(--text3)">${notesText}</span>`:''}
+        </div>
       </div>
-      <div class="inv-item-val">${fmt$(item.value)}</div>
-      <div style="display:flex;gap:.4rem;flex-shrink:0">
-        <button class="btn btn-ghost btn-xs" onclick="openInvEdit('${item.id}')">✎ Edit</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteInvItem('${item.id}')">✕</button>
+      <div class="inv-item-value-block">
+        <div class="inv-item-val">${fmt$(item.value)}</div>
+        ${item.qty>1 ? `<div class="inv-item-qty">× ${item.qty}</div>` : ''}
       </div>
-    </div>`).join('') + `<div style="padding:0 1rem">${renderViewFooter()}</div>`;
+      <div class="inv-item-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openInvEdit('${item.id}')" title="Edit">✎</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteInvItem('${item.id}')" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('') + `<div style="padding:0 1rem">${renderViewFooter()}</div>`;
 }
 function setInvCat(c){invCatFilter=c;renderInventoryView();}
 
