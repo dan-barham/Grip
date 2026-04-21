@@ -2048,6 +2048,104 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .users-table tr:last-child td{border-bottom:none;}
 .users-table td:first-child{font-weight:500;color:var(--text);}
 
+/* ── USERS VIEW ── */
+.user-role-group{margin-bottom:1.2rem;}
+.user-role-head{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);margin:0 0 .55rem;
+}
+.user-role-head::after{
+  content:"";flex:1;height:1px;background:var(--border);
+}
+.user-role-head .urh-count{
+  font-family:var(--mono);letter-spacing:0;text-transform:none;
+  font-weight:500;font-size:.72rem;color:var(--text3);
+  padding:.05rem .4rem;border:1px solid var(--border);border-radius:8px;
+}
+
+.user-card{
+  position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:.9rem 1.05rem .9rem 1.2rem;
+  display:flex;align-items:flex-start;gap:.95rem;
+  transition:all .14s;margin-bottom:.5rem;
+}
+.user-card::before{
+  content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;
+  border-radius:0 3px 3px 0;
+}
+.user-card.role-admin::before   {background:var(--accent);}
+.user-card.role-operator::before{background:var(--green);}
+.user-card.role-viewer::before  {background:var(--border3);}
+.user-card.role-renter::before  {background:#a878c8;}
+.user-card:hover{border-color:var(--border3);box-shadow:0 1px 6px rgba(0,0,0,.04);}
+.user-card.is-self{background:var(--accent-dim);border-color:var(--accent);}
+
+.user-avatar{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.95rem;letter-spacing:.02em;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+}
+.user-card.role-admin .user-avatar{background:rgba(240,160,32,.12);border-color:rgba(240,160,32,.35);color:var(--accent);}
+.user-card.role-operator .user-avatar{background:rgba(72,184,92,.12);border-color:rgba(72,184,92,.35);color:var(--green);}
+.user-card.role-renter .user-avatar{background:rgba(168,120,200,.12);border-color:rgba(168,120,200,.35);color:#a878c8;}
+
+.user-info{flex:1;min-width:0;}
+.user-name-row{
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+}
+.user-name{font-weight:650;font-size:1rem;color:var(--text);letter-spacing:-.01em;}
+.user-you-tag{
+  font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--accent);color:#fff;
+  padding:.1rem .4rem;border-radius:4px;
+}
+.user-fullname{font-size:.82rem;color:var(--text3);margin-top:.12rem;}
+.user-meta{
+  font-size:.74rem;color:var(--text3);font-family:var(--mono);
+  margin-top:.3rem;display:flex;gap:.9rem;flex-wrap:wrap;
+}
+.user-meta-item{display:inline-flex;align-items:center;gap:.3rem;}
+.user-meta-icon{opacity:.6;}
+
+.user-actions{
+  display:flex;align-items:center;gap:.35rem;flex-shrink:0;flex-wrap:wrap;
+}
+.user-role-select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  border-radius:6px;padding:.3rem .5rem;font-size:.78rem;font-family:var(--ui);
+  cursor:pointer;transition:all .1s;
+}
+.user-role-select:hover:not(:disabled){background:var(--surface3);border-color:var(--border3);color:var(--text);}
+.user-role-select:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Permissions legend */
+.user-perms{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:1.1rem 1.35rem;margin-top:.5rem;
+}
+.user-perms-head{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--text2);margin-bottom:.9rem;padding-bottom:.55rem;
+  border-bottom:1px solid var(--border);
+}
+.user-perm-row{
+  display:flex;align-items:baseline;gap:.85rem;padding:.45rem 0;
+  font-size:.82rem;color:var(--text3);line-height:1.5;
+}
+.user-perm-row + .user-perm-row{border-top:1px dashed var(--border);}
+.user-perm-label{
+  font-weight:700;font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;
+  width:80px;flex-shrink:0;
+}
+.user-perm-label.admin   {color:var(--accent);}
+.user-perm-label.operator{color:var(--green);}
+.user-perm-label.viewer  {color:var(--text2);}
+.user-perm-label.renter  {color:#a878c8;}
+
 /* ── SECTION HEADING (reusable) ── */
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
 .section-title{font-size:1.05rem;font-weight:600;color:var(--text);}
@@ -2140,57 +2238,141 @@ td.ta .btn+.btn{margin-left:.25rem;}
 
 /* ── BORROW REQUEST TABLE ROWS ── */
 .br-table{
-  border:1px solid var(--border);border-radius:8px;overflow:hidden;
+  border:1px solid var(--border);border-radius:9px;overflow:hidden;
+  background:var(--surface);
 }
-.br-row{border-bottom:1px solid var(--border);}
+.br-row{border-bottom:1px solid var(--border);position:relative;}
+.br-row::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:transparent;
+}
+.br-row.br-status-pending::before {background:var(--accent);}
+.br-row.br-status-approved::before{background:var(--green);}
+.br-row.br-status-denied::before  {background:var(--red);}
 .br-row:last-child{border-bottom:none;}
-.br-row-archived{opacity:.5;}
+.br-row-archived{opacity:.55;}
+.br-row-archived:hover{opacity:.8;}
 .br-row-main{
-  display:flex;align-items:center;gap:.75rem;
-  padding:.55rem .85rem;cursor:pointer;
+  display:flex;align-items:center;gap:.8rem;
+  padding:.7rem 1rem .7rem 1.1rem;cursor:pointer;
   transition:background .08s;user-select:none;
 }
 .br-row-main:hover{background:var(--surface2);}
-.br-row-status{flex-shrink:0;display:flex;align-items:flex-start;padding-top:.1rem;}
+.br-row-status{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;font-size:.9rem;
+}
+.br-row-status.status-pending {background:rgba(240,160,32,.12);color:var(--accent);}
+.br-row-status.status-approved{background:rgba(72,184,92,.12);color:var(--green);}
+.br-row-status.status-denied  {background:rgba(224,72,72,.12);color:var(--red);}
+.br-row-status.status-archived{background:var(--surface2);color:var(--text3);}
 .br-row-who{flex:1;min-width:0;}
-.br-row-name{font-size:.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.br-row-sub{font-size:.74rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.br-row-name{
+  font-size:.92rem;font-weight:650;color:var(--text);letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.br-row-sub{
+  font-size:.76rem;color:var(--text3);margin-top:.15rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);
+}
 .br-row-dates{
   display:flex;align-items:center;gap:.4rem;flex-shrink:0;
-  font-size:.78rem;color:var(--text2);white-space:nowrap;
+  font-size:.82rem;color:var(--text2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
 }
 .br-row-days{
-  font-family:var(--mono);font-size:.7rem;font-weight:600;color:var(--text3);
-  background:var(--surface3);border-radius:4px;padding:.1rem .3rem;
+  font-family:var(--mono);font-size:.7rem;font-weight:700;color:var(--text3);
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.1rem .45rem;
 }
-.br-row-gear-summary{display:flex;align-items:center;gap:.35rem;flex-shrink:0;}
+.br-row-gear-summary{display:flex;align-items:center;gap:.3rem;flex-shrink:0;}
 .br-gear-pill{
   font-size:.72rem;font-weight:600;font-family:var(--mono);
-  background:var(--surface3);color:var(--text2);
-  border-radius:4px;padding:.12rem .4rem;white-space:nowrap;
+  background:var(--surface2);color:var(--text2);border:1px solid var(--border);
+  border-radius:10px;padding:.12rem .45rem;white-space:nowrap;
 }
 .br-budget-pill{
   font-size:.72rem;font-weight:700;font-family:var(--mono);
-  background:var(--green-dim);color:var(--green);
-  border:1px solid rgba(62,201,110,.25);
-  border-radius:4px;padding:.12rem .4rem;white-space:nowrap;
+  background:rgba(72,184,92,.1);color:var(--green);
+  border:1px solid rgba(72,184,92,.3);
+  border-radius:10px;padding:.12rem .45rem;white-space:nowrap;
 }
 .br-row-chevron{
   flex-shrink:0;color:var(--text3);font-size:1rem;
-  transition:transform .15s;line-height:1;
+  transition:transform .15s;line-height:1;opacity:.6;
 }
+.br-row-main:hover .br-row-chevron{opacity:1;color:var(--accent);}
+
 /* Expanded drawer */
 .br-gear-drawer{
-  background:var(--bg);border-top:1px solid var(--border);
+  background:var(--surface2);border-top:1px solid var(--border);
 }
-.br-gear-inner{padding:.6rem 1rem .4rem 1rem;}
+.br-gear-inner{padding:.7rem 1rem .5rem 1.1rem;}
 .br-gear-note{
-  font-size:.78rem;color:var(--text3);margin-top:.4rem;font-style:italic;
+  font-size:.8rem;color:var(--text3);margin-top:.5rem;font-style:italic;
+  padding:.35rem .55rem;background:var(--surface);border-radius:5px;
+  border-left:2px solid var(--border2);
 }
 .br-row-actions{
   display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;
-  padding:.4rem 1rem .6rem 1rem;border-top:1px solid var(--border);
+  padding:.5rem 1rem .7rem 1.1rem;border-top:1px solid var(--border);
 }
+
+/* Requests view status KPI strip */
+.req-status-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:.6rem;margin-bottom:1.25rem;
+}
+.req-status-tile{
+  padding:.75rem 1rem;border-radius:9px;
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;flex-direction:column;gap:.2rem;
+  position:relative;overflow:hidden;
+}
+.req-status-tile::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.req-status-tile.pending ::before{background:var(--accent);}
+.req-status-tile.approved::before{background:var(--green);}
+.req-status-tile.denied  ::before{background:var(--red);}
+.req-status-tile.archived::before{background:var(--border3);}
+.req-status-label{
+  font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);display:flex;align-items:center;gap:.4rem;
+}
+.req-status-val{
+  font-size:1.8rem;font-weight:700;color:var(--text);line-height:1;
+  font-variant-numeric:tabular-nums;margin-top:.15rem;
+}
+.req-status-tile.pending  .req-status-val{color:var(--accent);}
+.req-status-tile.approved .req-status-val{color:var(--green);}
+.req-status-tile.denied   .req-status-val{color:var(--red);}
+
+/* Archived toggle */
+.req-toolbar{
+  display:flex;align-items:center;justify-content:flex-end;gap:1rem;
+  margin-bottom:.6rem;font-size:.79rem;color:var(--text3);
+}
+.req-toolbar label{
+  display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;
+}
+
+/* Group headers in Requests */
+.req-group{margin-bottom:1.25rem;}
+.req-group-head{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text2);margin:0 0 .55rem;
+}
+.req-group-head::after{
+  content:"";flex:1;height:1px;background:var(--border);
+}
+.req-group-head .rgh-count{
+  font-family:var(--mono);letter-spacing:0;text-transform:none;
+  font-weight:500;font-size:.72rem;color:var(--text3);
+  padding:.05rem .4rem;border:1px solid var(--border);border-radius:8px;
+}
+.req-group-head .rgh-icon{opacity:.7;}
+
 /* Gear chip grid */
 .bi-wrap{display:flex;flex-wrap:wrap;gap:.35rem .45rem;align-items:center;}
 .bi-cat-label{
@@ -3133,7 +3315,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.89';
+const GRIP_VERSION = '1.0.90';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -6398,60 +6580,102 @@ async function renderUsersView() {
   S.users = users || [];
 
   const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
-  let html = `<div class="section-head">
-    <div>
-      <div class="section-title">User Management</div>
-      <div class="section-sub">${pl(S.users.length,'user')} · 4 roles: admin, operator, viewer, renter</div>
-    </div>
-    <button class="home-action-btn primary" onclick="openModal('m-new-user')">＋ Add User</button>
-  </div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-  <table class="users-table">
-    <thead><tr>
-      <th>Email / User</th><th>Role</th><th>Member Since</th><th>Actions</th>
-    </tr></thead>
-    <tbody>`;
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-  S.users.forEach(u => {
-    const isSelf = u.id === currentUser?.id;
-    const created = u.created_at ? new Date(u.created_at).toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    const fullName = [u.first_name,u.last_name].filter(Boolean).join(' ');
-    html += `<tr>
-      <td>
-        <div style="font-size:.9rem">${u.username}${isSelf?' <span style="font-size:.72rem;color:var(--text3)">(you)</span>':''}</div>
-        ${fullName?`<div style="font-size:.78rem;color:var(--text3)">${fullName}</div>`:''}
-        ${u.phone?`<div style="font-size:.75rem;color:var(--text3);font-family:var(--mono)">${u.phone}</div>`:''}
-      </td>
-      <td><span class="role-badge role-${u.role}">${u.role}</span></td>
-      <td style="font-family:var(--mono);font-size:.8rem">${created}</td>
-      <td>
-        <select style="background:var(--surface2);border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:.2rem .4rem;font-size:.8rem;${isSelf?'opacity:.4;pointer-events:none':''}"
-          onchange="changeUserRole('${u.id}',this.value)" ${isSelf?'disabled':''}>
-          <option value="viewer"   ${u.role==='viewer'  ?'selected':''}>viewer</option>
-          <option value="operator" ${u.role==='operator'?'selected':''}>operator</option>
-          <option value="admin"    ${u.role==='admin'   ?'selected':''}>admin</option>
-          <option value="renter"   ${u.role==='renter'  ?'selected':''}>renter</option>
-        </select>
-        <button class="btn btn-ghost btn-xs" style="margin-left:.3rem" onclick="openUserProfile('${u.id}')">✎ Profile</button>
-        <button class="btn btn-ghost btn-xs" style="margin-left:.3rem" onclick="openResetPw('${u.id}','${u.username}')">PW</button>
-        ${!isSelf?`<button class="btn btn-danger btn-xs" style="margin-left:.3rem" onclick="deleteUser('${u.id}','${u.username}')">✕</button>`:''}
-      </td>
-    </tr>`;
+  // Group by role, with a preferred order
+  const roleOrder = ['admin','operator','viewer','renter'];
+  const byRole = {admin:[], operator:[], viewer:[], renter:[]};
+  S.users.forEach(u => { (byRole[u.role] ||= []).push(u); });
+
+  // Sort each group by username within
+  Object.keys(byRole).forEach(r => {
+    byRole[r].sort((a,b) => (a.username||'').localeCompare(b.username||''));
   });
 
-  html += `</tbody></table></div>
-  <div style="margin-top:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem;">
-    <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:.6rem;">Role Permissions</div>
-    <div style="font-size:.82rem;color:var(--text3);line-height:1.7;">
-      <strong style="color:var(--accent)">Admin</strong> — Full access. Manage users, approve/reject bookings, delete jobs and gear.<br>
-      <strong style="color:var(--green)">Operator</strong> — Can add jobs, days, gear and submit booking requests. Cannot delete jobs or manage users.<br>
-      <strong style="color:var(--text2)">Viewer</strong> — Read-only. Can see all jobs, gear and the calendar, but cannot make changes.<br>
-      <strong style="color:var(--accent)">Renter</strong> — Borrow portal only. Sees available inventory, selects items, picks dates and submits a request to you.
+  let html = `<div class="section-head" style="margin-bottom:1.25rem">
+    <div>
+      <div class="section-title">User Management</div>
+      <div class="section-sub">${pl(S.users.length,'user')} across 4 roles</div>
+    </div>
+    <button class="home-action-btn primary" onclick="openModal('m-new-user')">＋ Add User</button>
+  </div>`;
+
+  // Render groups
+  const roleLabels = {admin:'Admins', operator:'Operators', viewer:'Viewers', renter:'Renters'};
+  roleOrder.forEach(role => {
+    const list = byRole[role] || [];
+    if(!list.length) return;
+    html += `<div class="user-role-group">
+      <div class="user-role-head">
+        <span>${roleLabels[role]}</span>
+        <span class="urh-count">${list.length}</span>
+      </div>`;
+    list.forEach(u => { html += renderUserCard(u, esc); });
+    html += `</div>`;
+  });
+
+  // Permissions reference card
+  html += `<div class="user-perms">
+    <div class="user-perms-head">
+      <span>🔐</span> Role Permissions
+    </div>
+    <div class="user-perm-row">
+      <span class="user-perm-label admin">Admin</span>
+      <span>Full access. Manage users, approve/reject bookings, delete jobs and gear.</span>
+    </div>
+    <div class="user-perm-row">
+      <span class="user-perm-label operator">Operator</span>
+      <span>Add jobs, days, gear, and submit booking requests. Cannot delete jobs or manage users.</span>
+    </div>
+    <div class="user-perm-row">
+      <span class="user-perm-label viewer">Viewer</span>
+      <span>Read-only. See all jobs, gear, and the calendar — but cannot make changes.</span>
+    </div>
+    <div class="user-perm-row">
+      <span class="user-perm-label renter">Renter</span>
+      <span>Borrow portal only. Sees available inventory, picks items and dates, and submits a request.</span>
     </div>
   </div>`;
 
   html += renderViewFooter();
   el.innerHTML = html;
+}
+
+function renderUserCard(u, esc) {
+  const isSelf = u.id === currentUser?.id;
+  const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ');
+  const initials = ((u.first_name||'')[0]||'') + ((u.last_name||'')[0]||'')
+    || (u.username||'?').slice(0,2).toUpperCase();
+  const created = u.created_at
+    ? new Date(u.created_at).toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'})
+    : '—';
+
+  return `<div class="user-card role-${esc(u.role)}${isSelf?' is-self':''}">
+    <div class="user-avatar">${esc(initials.toUpperCase().slice(0,2))}</div>
+    <div class="user-info">
+      <div class="user-name-row">
+        <span class="user-name">${esc(u.username)}</span>
+        ${isSelf?'<span class="user-you-tag">You</span>':''}
+      </div>
+      ${fullName?`<div class="user-fullname">${esc(fullName)}</div>`:''}
+      <div class="user-meta">
+        ${u.phone?`<span class="user-meta-item"><span class="user-meta-icon">📞</span>${esc(u.phone)}</span>`:''}
+        <span class="user-meta-item"><span class="user-meta-icon">📅</span>Joined ${esc(created)}</span>
+      </div>
+    </div>
+    <div class="user-actions">
+      <select class="user-role-select"
+        onchange="changeUserRole('${u.id}',this.value)" ${isSelf?'disabled title="You cannot change your own role"':''}>
+        <option value="viewer"   ${u.role==='viewer'  ?'selected':''}>viewer</option>
+        <option value="operator" ${u.role==='operator'?'selected':''}>operator</option>
+        <option value="admin"    ${u.role==='admin'   ?'selected':''}>admin</option>
+        <option value="renter"   ${u.role==='renter'  ?'selected':''}>renter</option>
+      </select>
+      <button class="btn btn-ghost btn-xs" onclick="openUserProfile('${u.id}')" title="Edit profile">✎</button>
+      <button class="btn btn-ghost btn-xs" onclick="openResetPw('${u.id}','${esc(u.username)}')" title="Reset password">🔑</button>
+      ${!isSelf?`<button class="btn btn-danger btn-xs" onclick="deleteUser('${u.id}','${esc(u.username)}')" title="Delete user">✕</button>`:''}
+    </div>
+  </div>`;
 }
 
 async function createUser() {
@@ -8177,22 +8401,44 @@ function renderBorrowAdminView() {
   if(!el) return;
 
   if(S.borrowRequestsError){
-    el.innerHTML = `<div style="padding:1rem;background:#fff3f3;border:1px solid var(--red);border-radius:6px;font-size:.82rem;color:var(--red)">
+    el.innerHTML = `<div style="padding:1rem;background:rgba(224,72,72,.08);border:1px solid var(--red);border-radius:8px;font-size:.85rem;color:var(--red)">
       <strong>API error:</strong> ${S.borrowRequestsError}</div>`;
     return;
   }
 
   const reqs = S.borrowRequests;
-  const pendingCount = reqs.filter(r=>r.status==='pending'&&!r.archived).length;
+  const pendingCount  = reqs.filter(r=>r.status==='pending' &&!r.archived).length;
+  const approvedCount = reqs.filter(r=>r.status==='approved'&&!r.archived).length;
+  const deniedCount   = reqs.filter(r=>r.status==='denied'  &&!r.archived).length;
+  const archivedCount = reqs.filter(r=>r.archived).length;
 
-  el.innerHTML = `<div class="section-head">
+  el.innerHTML = `<div class="section-head" style="margin-bottom:1.1rem">
     <div>
       <div class="section-title">Borrow Requests</div>
-      <div class="section-sub">${reqs.length} total${pendingCount?` · <strong style="color:var(--accent)">${pendingCount} pending</strong>`:''}
-      </div>
+      <div class="section-sub">${reqs.length} total request${reqs.length!==1?'s':''}</div>
     </div>
     <button class="home-action-btn primary" onclick="openAdminNewBorrow()">＋ New Request</button>
   </div>
+
+  <div class="req-status-row">
+    <div class="req-status-tile pending">
+      <div class="req-status-label">⏳ Pending</div>
+      <div class="req-status-val">${pendingCount}</div>
+    </div>
+    <div class="req-status-tile approved">
+      <div class="req-status-label">✓ Approved</div>
+      <div class="req-status-val">${approvedCount}</div>
+    </div>
+    <div class="req-status-tile denied">
+      <div class="req-status-label">✕ Denied</div>
+      <div class="req-status-val">${deniedCount}</div>
+    </div>
+    <div class="req-status-tile archived">
+      <div class="req-status-label">⊟ Archived</div>
+      <div class="req-status-val">${archivedCount}</div>
+    </div>
+  </div>
+
   <div id="borrow-requests-admin"></div>
   ${renderViewFooter()}`;
 
@@ -8204,14 +8450,18 @@ function renderBorrowRequestsAdmin() {
   if(!el) return;
 
   if(S.borrowRequestsError){
-    el.innerHTML = `<div style="padding:1rem;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.82rem;color:var(--red)">
+    el.innerHTML = `<div style="padding:1rem;background:rgba(224,72,72,.08);border:1px solid var(--red);border-radius:8px;font-size:.85rem;color:var(--red)">
       <strong>API error:</strong> ${S.borrowRequestsError}</div>`;
     return;
   }
 
   const reqs = S.borrowRequests;
   if(!reqs.length){
-    el.innerHTML = '<div class="empty">No borrow requests yet.</div>';
+    el.innerHTML = `<div class="dir-empty">
+      <span class="dir-empty-icon">📥</span>
+      No borrow requests yet.
+      <div class="dir-empty-hint">Renters' requests will appear here for approval. You can also create one manually.</div>
+    </div>`;
     return;
   }
 
@@ -8220,32 +8470,32 @@ function renderBorrowRequestsAdmin() {
   const archivedCount = reqs.filter(r=>r.archived).length;
 
   const groups = [
-    {label:'Pending Review', items: visible.filter(r=>r.status==='pending'  && !r.archived)},
-    {label:'Approved',       items: visible.filter(r=>r.status==='approved' && !r.archived)},
-    {label:'Denied',         items: visible.filter(r=>r.status==='denied'   && !r.archived)},
-    {label:'Archived',       items: showArchived ? reqs.filter(r=>r.archived) : []},
+    {key:'pending',  label:'Pending Review', icon:'⏳', items: visible.filter(r=>r.status==='pending'  && !r.archived)},
+    {key:'approved', label:'Approved',       icon:'✓',  items: visible.filter(r=>r.status==='approved' && !r.archived)},
+    {key:'denied',   label:'Denied',         icon:'✕',  items: visible.filter(r=>r.status==='denied'   && !r.archived)},
+    {key:'archived', label:'Archived',       icon:'⊟',  items: showArchived ? reqs.filter(r=>r.archived) : []},
   ].filter(g=>g.items.length);
 
   const fmtShort = ds => {
     if(!ds) return '—';
     return new Date(ds+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'});
   };
-  const statusDot = s => {
-    const col = s==='approved'?'var(--green)':s==='denied'?'var(--red)':s==='archived'?'var(--text3)':'var(--accent)';
-    return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0;margin-top:.15rem"></span>`;
-  };
+  const statusIcon = s => ({pending:'⏳',approved:'✓',denied:'✕',archived:'⊟'}[s] || '·');
 
-  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-    <span style="font-size:.79rem;color:var(--text3)">${reqs.length} total${archivedCount?' · '+archivedCount+' archived':''}</span>
-    <label style="display:flex;align-items:center;gap:.4rem;font-size:.79rem;color:var(--text3);cursor:pointer">
+  let html = `<div class="req-toolbar">
+    <label>
       <input type="checkbox" id="br-show-archived" ${showArchived?'checked':''} onchange="renderBorrowRequestsAdmin()">
-      Show archived
+      Show archived${archivedCount?` (${archivedCount})`:''}
     </label>
   </div>`;
 
   groups.forEach(g => {
-    html += `<div style="margin-bottom:1rem">
-      <div class="home-section-title" style="margin-bottom:.3rem">${g.label} <span style="opacity:.5;font-weight:400">(${g.items.length})</span></div>
+    html += `<div class="req-group">
+      <div class="req-group-head">
+        <span class="rgh-icon">${g.icon}</span>
+        <span>${g.label}</span>
+        <span class="rgh-count">${g.items.length}</span>
+      </div>
       <div class="br-table">`;
 
     g.items.forEach(req => {
@@ -8254,16 +8504,17 @@ function renderBorrowRequestsAdmin() {
       const totalQty = (req.items||[]).reduce((s,i)=>s+(i.qty||1),0);
       const budget = req.budget>0 ? 'CA$'+Number(req.budget).toLocaleString('en-CA',{maximumFractionDigits:0}) : '';
       const rowId = 'br-gear-'+req.id;
+      const statusClass = isArchived ? 'archived' : req.status;
 
-      html += `<div class="br-row${isArchived?' br-row-archived':''}" id="brrow-${req.id}">
+      html += `<div class="br-row br-status-${req.status}${isArchived?' br-row-archived':''}" id="brrow-${req.id}">
         <div class="br-row-main" onclick="brToggleGear('${req.id}')">
-          <div class="br-row-status">${statusDot(req.status)}</div>
+          <div class="br-row-status status-${statusClass}">${statusIcon(statusClass)}</div>
           <div class="br-row-who">
             <div class="br-row-name">${req.contact_name}${req.contact_org?`<span class="br-row-org"> · ${req.contact_org}</span>`:''}</div>
             <div class="br-row-sub">${[req.contact_email,req.contact_phone].filter(Boolean).join(' · ')}</div>
           </div>
           <div class="br-row-dates">
-            <span>${fmtShort(req.start_date)} – ${fmtShort(req.end_date)}</span>
+            <span>${fmtShort(req.start_date)} → ${fmtShort(req.end_date)}</span>
             <span class="br-row-days">${days}d</span>
           </div>
           <div class="br-row-gear-summary">
