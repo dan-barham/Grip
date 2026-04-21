@@ -1143,53 +1143,211 @@ td.ta .btn+.btn{margin-left:.25rem;}
 }
 
 /* ── CONTACTS ── */
-.contact-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:8px;
-  padding:.85rem 1rem;display:flex;align-items:flex-start;gap:.9rem;
-  transition:border-color .12s;
-}
-.contact-card:hover{border-color:var(--border3);}
-.cc-avatar{
-  width:36px;height:36px;border-radius:50%;background:var(--accent-dim);
-  color:var(--accent);font-weight:600;font-size:.95rem;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-}
-.cc-info{flex:1;min-width:0;}
-.cc-name{font-weight:600;font-size:.95rem;color:var(--text);}
-.cc-role{font-size:.78rem;color:var(--accent);font-family:var(--mono);margin-top:.1rem;}
-.cc-meta{font-size:.8rem;color:var(--text2);margin-top:.2rem;display:flex;gap:.75rem;flex-wrap:wrap;}
-.cc-meta a{color:var(--text2);text-decoration:none;}
-.cc-meta a:hover{color:var(--text);}
-.cc-actions{display:flex;gap:.35rem;flex-shrink:0;}
-.cc-notes{font-size:.78rem;color:var(--text3);margin-top:.3rem;font-style:italic;}
+/* ═══════════════════════════════════════════════════════════
+   DIRECTORY VIEW — People + Companies
+   ═══════════════════════════════════════════════════════════ */
 
-/* Per-company jobs list on the company card */
+/* Segmented-control sub-tabs */
+.dir-tabs{
+  display:inline-flex;gap:.2rem;padding:.22rem;margin-bottom:1rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:9px;
+}
+.dir-tab{
+  font-family:var(--ui);font-size:.82rem;font-weight:500;letter-spacing:.01em;
+  padding:.4rem .9rem;background:transparent;border:none;border-radius:7px;
+  color:var(--text3);cursor:pointer;transition:all .12s;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.dir-tab:hover:not(.active){color:var(--text);background:var(--surface);}
+.dir-tab.active{
+  background:var(--accent);color:#fff;font-weight:600;
+  box-shadow:0 1px 3px rgba(0,0,0,.12);
+}
+.dir-tab .dir-tab-count{
+  font-size:.7rem;font-family:var(--mono);
+  padding:.05rem .42rem;border-radius:10px;
+  background:rgba(0,0,0,.12);
+  opacity:.85;
+}
+.dir-tab.active .dir-tab-count{background:rgba(255,255,255,.22);}
+
+/* Search bar */
+.dir-search{
+  position:relative;margin-bottom:1rem;
+}
+.dir-search input{
+  width:100%;padding:.58rem .9rem .58rem 2.1rem;
+  font-size:.88rem;font-family:var(--ui);
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);transition:border-color .12s;
+}
+.dir-search input:focus{outline:none;border-color:var(--accent);}
+.dir-search::before{
+  content:"🔍";position:absolute;left:.7rem;top:50%;transform:translateY(-50%);
+  font-size:.85rem;opacity:.55;pointer-events:none;
+}
+
+/* Section head tweaks specific to directory */
+.dir-section-head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:.9rem;gap:1rem;
+}
+.dir-section-head .dsh-sub{
+  font-size:.78rem;color:var(--text3);margin-top:.1rem;
+}
+
+/* Role group header */
+.dir-role-head{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);
+  margin:1.1rem 0 .5rem;
+}
+.dir-role-head::after{
+  content:"";flex:1;height:1px;background:var(--border);
+}
+.dir-role-head .rc-count{
+  font-family:var(--mono);letter-spacing:0;text-transform:none;
+  font-weight:500;font-size:.72rem;color:var(--text3);
+  padding:.05rem .4rem;border:1px solid var(--border);border-radius:8px;
+}
+
+/* Card — redesigned with left accent stripe + better hierarchy */
+.contact-card{
+  position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:.9rem 1.05rem .9rem 1.2rem;
+  display:flex;align-items:flex-start;gap:.95rem;
+  transition:border-color .14s, box-shadow .14s, transform .14s;
+}
+.contact-card::before{
+  content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
+  background:var(--border2);border-radius:0 3px 3px 0;
+  transition:background .14s;
+}
+.contact-card:hover{border-color:var(--border3);box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.contact-card.cc-person::before{background:var(--accent);opacity:.55;}
+.contact-card.cc-person:hover::before{opacity:1;}
+.contact-card.cc-company::before{background:var(--accent);}
+.contact-card.cc-company:hover::before{opacity:.85;}
+
+/* Avatar — circle for people, rounded-square for companies */
+.cc-avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--accent-dim);color:var(--accent);
+  font-weight:700;font-size:.95rem;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  letter-spacing:.02em;
+}
+.cc-avatar.cc-avatar-company{
+  border-radius:10px;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent2, var(--accent)) 100%);
+  color:#fff;
+}
+
+.cc-info{flex:1;min-width:0;}
+
+/* Header block: name + role/subtitle */
+.cc-header{display:flex;flex-direction:column;gap:.1rem;}
+.cc-name{
+  font-weight:650;font-size:1rem;color:var(--text);
+  line-height:1.25;
+}
+.cc-role{
+  font-size:.76rem;font-weight:500;
+  color:var(--accent);font-family:var(--ui);
+  letter-spacing:.02em;
+}
+
+/* Contact chip row */
+.cc-chips{
+  display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.55rem;
+}
+.cc-chip{
+  display:inline-flex;align-items:center;gap:.32rem;
+  font-size:.76rem;font-family:var(--ui);
+  padding:.2rem .55rem;border-radius:12px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);text-decoration:none;
+  transition:all .1s;
+  max-width:100%;
+}
+.cc-chip:hover{background:var(--surface);border-color:var(--border3);color:var(--text);}
+.cc-chip .cc-chip-icon{
+  font-size:.78rem;opacity:.7;flex-shrink:0;
+}
+.cc-chip .cc-chip-text{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* Address block (companies) */
+.cc-address{
+  margin-top:.55rem;padding:.45rem .7rem;
+  background:var(--surface2);border-radius:6px;
+  font-size:.78rem;color:var(--text2);
+  white-space:pre-line;line-height:1.45;
+  border-left:2px solid var(--border2);
+}
+
+/* Notes block — distinct callout */
+.cc-notes{
+  margin-top:.55rem;padding:.4rem .65rem;
+  background:rgba(0,0,0,.02);border-radius:6px;
+  font-size:.79rem;color:var(--text3);
+  font-style:italic;line-height:1.45;
+  border-left:2px solid var(--border2);
+}
+
+.cc-actions{display:flex;gap:.3rem;flex-shrink:0;opacity:.5;transition:opacity .12s;}
+.contact-card:hover .cc-actions{opacity:1;}
+
+/* Per-company jobs list on company card */
 .co-jobs-list{
-  margin-top:.55rem;padding-top:.45rem;
-  border-top:1px dashed var(--border);
-  display:flex;flex-direction:column;gap:.15rem;
+  margin-top:.7rem;padding-top:.6rem;
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:.2rem;
 }
 .co-jobs-head{
-  font-size:.68rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:.08em;
-  color:var(--text3);margin-bottom:.2rem;
+  display:flex;align-items:center;gap:.45rem;
+  font-size:.68rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);margin-bottom:.35rem;
+}
+.co-jobs-head .cjh-count{
+  font-family:var(--mono);font-weight:500;
+  padding:.05rem .4rem;border:1px solid var(--border);border-radius:8px;
+  letter-spacing:0;
 }
 .co-job-row{
   display:flex;align-items:center;justify-content:space-between;gap:.6rem;
-  font-size:.8rem;padding:.25rem .5rem;border-radius:5px;
-  cursor:pointer;transition:background .08s;
+  font-size:.82rem;padding:.38rem .55rem;border-radius:6px;
+  cursor:pointer;transition:background .1s, transform .1s;
   color:var(--text2);
 }
-.co-job-row:hover{background:var(--surface2);color:var(--text);}
+.co-job-row:hover{background:var(--surface2);color:var(--text);transform:translateX(2px);}
+.co-job-row .cjr-chevron{color:var(--text3);font-size:.75rem;opacity:.5;}
+.co-job-row:hover .cjr-chevron{opacity:1;color:var(--accent);}
 .co-job-name{
   flex:1;min-width:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-weight:500;
 }
-.co-job-name.archived{color:var(--text3);}
+.co-job-name.archived{color:var(--text3);font-style:italic;}
 .co-job-meta{
-  font-size:.7rem;font-family:var(--mono);color:var(--text3);
-  flex-shrink:0;
+  font-size:.72rem;font-family:var(--mono);color:var(--text3);
+  flex-shrink:0;white-space:nowrap;
 }
+
+/* Empty state */
+.dir-empty{
+  padding:2.5rem 1rem;text-align:center;
+  color:var(--text3);font-size:.9rem;
+  background:var(--surface);border:1px dashed var(--border);border-radius:9px;
+}
+.dir-empty-icon{font-size:2rem;display:block;margin-bottom:.6rem;opacity:.45;}
+.dir-empty-hint{font-size:.8rem;color:var(--text3);margin-top:.4rem;}
+
+/* ─── end DIRECTORY VIEW ─── */
 
 /* Job contacts panel inside job rail item */
 .job-contacts-strip{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.3rem;}
@@ -2510,7 +2668,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.82';
+const GRIP_VERSION = '1.0.83';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -5880,113 +6038,217 @@ async function deleteCompany(id) {
 // ══════════════════════════════════════════════════════════
 
 let directorySubTab = 'people'; // 'people' | 'companies'
+let directorySearch = '';
 
 function setDirectorySubTab(tab) {
   directorySubTab = tab;
+  // Preserve search only if it's meaningful across both tabs (name)
   renderDirectoryView();
+}
+
+function onDirectorySearch(v) {
+  directorySearch = v || '';
+  // Only re-render the list body — keep focus in the input
+  const body = document.getElementById('dir-body');
+  if(!body) { renderDirectoryView(); return; }
+  const ctx = makeDirectoryCtx();
+  body.innerHTML = directorySubTab === 'companies'
+    ? renderCompaniesSection(ctx)
+    : renderContactsSection(ctx);
+}
+
+function makeDirectoryCtx() {
+  return {
+    isViewer: currentUser?.role==='viewer',
+    pl: (n,w) => `${n} ${w}${n!==1?'s':''}`,
+    coPl: n => `${n} ${n===1?'company':'companies'}`,
+    esc: s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
+    q: directorySearch.trim().toLowerCase(),
+  };
 }
 
 function renderDirectoryView() {
   const el = document.getElementById('contacts-content'); if(!el) return;
-  const isViewer = currentUser?.role==='viewer';
-  const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
-  const coPl = n => `${n} ${n===1?'company':'companies'}`;
-  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ctx = makeDirectoryCtx();
+  const peopleCount    = S.contacts.length;
+  const companiesCount = (S.companies||[]).length;
 
-  // Sub-tab switcher
-  const tabBar = `<div style="display:flex;gap:.35rem;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)">
-    <button class="nav-tab ${directorySubTab==='people'?'active':''}" onclick="setDirectorySubTab('people')">
-      👥 People <span style="opacity:.65;font-weight:400;margin-left:.25rem">${S.contacts.length}</span>
+  const tabBar = `<div class="dir-tabs" role="tablist">
+    <button class="dir-tab ${directorySubTab==='people'?'active':''}"
+            onclick="setDirectorySubTab('people')" role="tab">
+      👥 People <span class="dir-tab-count">${peopleCount}</span>
     </button>
-    <button class="nav-tab ${directorySubTab==='companies'?'active':''}" onclick="setDirectorySubTab('companies')">
-      🏢 Companies <span style="opacity:.65;font-weight:400;margin-left:.25rem">${(S.companies||[]).length}</span>
+    <button class="dir-tab ${directorySubTab==='companies'?'active':''}"
+            onclick="setDirectorySubTab('companies')" role="tab">
+      🏢 Companies <span class="dir-tab-count">${companiesCount}</span>
     </button>
   </div>`;
 
-  if(directorySubTab === 'companies'){
-    el.innerHTML = tabBar + renderCompaniesSection({isViewer, pl, coPl, esc});
-    return;
-  }
+  const placeholder = directorySubTab === 'companies'
+    ? 'Search companies by name, email, or website…'
+    : 'Search contacts by name, role, email, or company…';
 
-  // People tab (default)
-  el.innerHTML = tabBar + renderContactsSection({isViewer, pl, esc});
+  const searchBar = `<div class="dir-search">
+    <input type="search" id="dir-search-input"
+           placeholder="${ctx.esc(placeholder)}"
+           value="${ctx.esc(directorySearch)}"
+           oninput="onDirectorySearch(this.value)"
+           autocomplete="off">
+  </div>`;
+
+  const body = directorySubTab === 'companies'
+    ? renderCompaniesSection(ctx)
+    : renderContactsSection(ctx);
+
+  el.innerHTML = tabBar + searchBar + `<div id="dir-body">${body}</div>` + renderViewFooter();
+
+  // Restore focus + caret to search input if user was typing
+  const inp = document.getElementById('dir-search-input');
+  if(inp && directorySearch) {
+    inp.focus();
+    const len = inp.value.length;
+    try { inp.setSelectionRange(len, len); } catch(e){}
+  }
 }
 
 // ── Contacts section (people) ─────────────────────────────
-function renderContactsSection({isViewer, pl, esc}) {
-  let html = `<div class="section-head">
+function renderContactsSection({isViewer, pl, esc, q}) {
+  const addBtn = !isViewer
+    ? '<button class="home-action-btn primary" onclick="openAddContact()">＋ Add Contact</button>'
+    : '';
+
+  let contacts = S.contacts;
+  if(q){
+    contacts = contacts.filter(c =>
+      (c.name||'').toLowerCase().includes(q) ||
+      (c.role||'').toLowerCase().includes(q) ||
+      (c.email||'').toLowerCase().includes(q) ||
+      (c.phone||'').toLowerCase().includes(q) ||
+      (c.company||'').toLowerCase().includes(q)
+    );
+  }
+
+  let html = `<div class="dir-section-head">
     <div>
       <div class="section-title">People</div>
-      <div class="section-sub">${pl(S.contacts.length,'contact')} in your address book</div>
+      <div class="dsh-sub">${pl(contacts.length,'contact')}${q?` matching "${esc(q)}"`:` in your address book`}</div>
     </div>
-    ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddContact()">＋ Add Contact</button>' : ''}
+    ${addBtn}
   </div>`;
 
   if(!S.contacts.length){
-    html += '<div class="empty" style="padding:2rem 0">No contacts yet. Add your crew, clients, and collaborators.</div>';
-    html += renderViewFooter();
+    html += `<div class="dir-empty">
+      <span class="dir-empty-icon">👥</span>
+      No contacts yet.
+      <div class="dir-empty-hint">Add your crew, clients, and collaborators to start building your directory.</div>
+    </div>`;
+    return html;
+  }
+  if(!contacts.length){
+    html += `<div class="dir-empty">
+      <span class="dir-empty-icon">🔍</span>
+      No contacts match "${esc(q)}".
+    </div>`;
     return html;
   }
 
   // Group by role
   const byRole = {};
-  S.contacts.forEach(ct => {
+  contacts.forEach(ct => {
     const r = ct.role || 'Other';
     if(!byRole[r]) byRole[r] = [];
     byRole[r].push(ct);
   });
-  const sorted = Object.keys(byRole).sort((a,b)=>a.localeCompare(b));
+  // Put "Other" last, everything else alphabetical
+  const sorted = Object.keys(byRole).sort((a,b) => {
+    if(a === 'Other') return 1;
+    if(b === 'Other') return -1;
+    return a.localeCompare(b);
+  });
 
   sorted.forEach(role => {
-    html += `<div class="home-section-title" style="margin-bottom:.5rem">${esc(role)}</div>
-    <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1.2rem">`;
-    byRole[role].forEach(ct => {
-      const initials = ct.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const canEdit = !isViewer;
-      html += `<div class="contact-card">
-        <div class="cc-avatar">${esc(initials)}</div>
-        <div class="cc-info">
-          <div class="cc-name">${esc(ct.name)}</div>
-          ${ct.role?`<div class="cc-role">${esc(ct.role)}</div>`:''}
-          <div class="cc-meta">
-            ${ct.email?`<a href="mailto:${esc(ct.email)}">✉ ${esc(ct.email)}</a>`:''}
-            ${ct.phone?`<span>📞 ${esc(ct.phone)}</span>`:''}
-            ${ct.company?`<span>🏢 ${esc(ct.company)}</span>`:''}
-          </div>
-          ${ct.notes?`<div class="cc-notes">${esc(ct.notes)}</div>`:''}
-        </div>
-        ${canEdit?`<div class="cc-actions">
-          <button class="btn btn-ghost btn-xs" onclick="openEditContact('${ct.id}')">✎</button>
-          <button class="btn btn-danger btn-xs" onclick="deleteContact('${ct.id}')">✕</button>
-        </div>`:''}
-      </div>`;
+    const people = byRole[role];
+    html += `<div class="dir-role-head">
+      <span>${esc(role)}</span>
+      <span class="rc-count">${people.length}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem;">`;
+    people.forEach(ct => {
+      html += renderPersonCard(ct, {isViewer, esc});
     });
-    html += '</div>';
+    html += `</div>`;
   });
   return html;
 }
 
-// ── Companies section ─────────────────────────────────────
-function renderCompaniesSection({isViewer, pl, coPl, esc}) {
-  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+function renderPersonCard(ct, {isViewer, esc}) {
+  const initials = (ct.name||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '·';
+  const chips = [];
+  if(ct.email)   chips.push(`<a class="cc-chip" href="mailto:${esc(ct.email)}" title="${esc(ct.email)}"><span class="cc-chip-icon">✉</span><span class="cc-chip-text">${esc(ct.email)}</span></a>`);
+  if(ct.phone)   chips.push(`<a class="cc-chip" href="tel:${esc(ct.phone)}" title="${esc(ct.phone)}"><span class="cc-chip-icon">📞</span><span class="cc-chip-text">${esc(ct.phone)}</span></a>`);
+  if(ct.company) chips.push(`<span class="cc-chip" title="${esc(ct.company)}"><span class="cc-chip-icon">🏢</span><span class="cc-chip-text">${esc(ct.company)}</span></span>`);
+  const canEdit = !isViewer;
 
-  let html = `<div class="section-head">
+  return `<div class="contact-card cc-person">
+    <div class="cc-avatar">${esc(initials)}</div>
+    <div class="cc-info">
+      <div class="cc-header">
+        <div class="cc-name">${esc(ct.name||'')}</div>
+        ${ct.role?`<div class="cc-role">${esc(ct.role)}</div>`:''}
+      </div>
+      ${chips.length?`<div class="cc-chips">${chips.join('')}</div>`:''}
+      ${ct.notes?`<div class="cc-notes">${esc(ct.notes)}</div>`:''}
+    </div>
+    ${canEdit?`<div class="cc-actions">
+      <button class="btn btn-ghost btn-xs" onclick="openEditContact('${ct.id}')" title="Edit">✎</button>
+      <button class="btn btn-danger btn-xs" onclick="deleteContact('${ct.id}')" title="Delete">✕</button>
+    </div>`:''}
+  </div>`;
+}
+
+// ── Companies section ─────────────────────────────────────
+function renderCompaniesSection({isViewer, pl, coPl, esc, q}) {
+  const addBtn = !isViewer
+    ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>'
+    : '';
+
+  let companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+
+  if(q){
+    companies = companies.filter(co =>
+      (co.name||'').toLowerCase().includes(q) ||
+      (co.email||'').toLowerCase().includes(q) ||
+      (co.website||'').toLowerCase().includes(q) ||
+      (co.phone||'').toLowerCase().includes(q) ||
+      (co.address||'').toLowerCase().includes(q)
+    );
+  }
+
+  let html = `<div class="dir-section-head">
     <div>
       <div class="section-title">Production Companies</div>
-      <div class="section-sub">${coPl(companies.length)} in your directory</div>
+      <div class="dsh-sub">${coPl(companies.length)}${q?` matching "${esc(q)}"`:` in your directory`}</div>
     </div>
-    ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>' : ''}
+    ${addBtn}
   </div>`;
 
+  if(!(S.companies||[]).length){
+    html += `<div class="dir-empty">
+      <span class="dir-empty-icon">🏢</span>
+      No production companies yet.
+      <div class="dir-empty-hint">Add client companies and production houses to keep their contact info handy.</div>
+    </div>`;
+    return html;
+  }
   if(!companies.length){
-    html += '<div class="empty" style="padding:2rem 0">No production companies yet. Add client companies and production houses you work with.</div>';
-    html += renderViewFooter();
+    html += `<div class="dir-empty">
+      <span class="dir-empty-icon">🔍</span>
+      No companies match "${esc(q)}".
+    </div>`;
     return html;
   }
 
-  const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
-
-  // Group jobs by their `co` (production company name), ignoring empty
+  // Group jobs by their `co` (production company name)
   const jobsByCo = {};
   S.jobs.forEach(j => {
     if(!j.co) return;
@@ -5994,61 +6256,70 @@ function renderCompaniesSection({isViewer, pl, coPl, esc}) {
     jobsByCo[j.co].push(j);
   });
 
-  html += `<div style="display:flex;flex-direction:column;gap:.6rem">`;
+  html += `<div style="display:flex;flex-direction:column;gap:.65rem;">`;
   companies.forEach(co => {
-    const initials = co.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const coJobs = (jobsByCo[co.name] || []).slice().sort((a,b) => {
-      // Archived last, then by name
-      if((!!a.archived) !== (!!b.archived)) return a.archived ? 1 : -1;
-      return a.name.localeCompare(b.name);
-    });
-    const canEdit = !isViewer;
-
-    html += `<div class="contact-card">
-      <div class="cc-avatar" style="background:var(--accent2,var(--accent));">${esc(initials)}</div>
-      <div class="cc-info">
-        <div class="cc-name">${esc(co.name)}</div>
-        ${coJobs.length ? `<div class="cc-role">${pl(coJobs.length,'job')}</div>` : ''}
-        <div class="cc-meta">
-          ${co.email?`<a href="mailto:${esc(co.email)}">✉ ${esc(co.email)}</a>`:''}
-          ${co.phone?`<span>📞 ${esc(co.phone)}</span>`:''}
-          ${co.website?`<a href="${esc(webHref(co.website))}" target="_blank" rel="noopener">🌐 ${esc(co.website)}</a>`:''}
-        </div>
-        ${co.address?`<div class="cc-notes" style="white-space:pre-line">📍 ${esc(co.address)}</div>`:''}
-        ${co.notes?`<div class="cc-notes">${esc(co.notes)}</div>`:''}
-        ${coJobs.length ? `<div class="co-jobs-list">
-          <div class="co-jobs-head">Jobs</div>
-          ${coJobs.map(j => {
-            const dayCnt = j.days?.length || 0;
-            const latest = jobLatestDate(j);
-            return `<div class="co-job-row" onclick="selectJob('${j.id}');switchView('jobs')" title="View this job">
-              <span class="co-job-name ${j.archived?'archived':''}">${esc(j.name)}${j.archived?' <span style=\"opacity:.55\">(archived)</span>':''}</span>
-              <span class="co-job-meta">
-                ${dayCnt ? `${dayCnt}d` : ''}
-                ${latest ? ` · ${esc(fmtDate(latest))}` : ''}
-              </span>
-            </div>`;
-          }).join('')}
-        </div>` : ''}
-      </div>
-      ${canEdit?`<div class="cc-actions">
-        <button class="btn btn-ghost btn-xs" onclick="openEditCompany('${co.id}')" title="Edit">✎</button>
-        <button class="btn btn-ghost btn-xs" onclick="deleteCompany('${co.id}')" title="Delete" style="color:var(--err,#d03040)">✕</button>
-      </div>`:''}
-    </div>`;
+    html += renderCompanyCard(co, jobsByCo[co.name] || [], {isViewer, pl, esc});
   });
   html += `</div>`;
-  html += renderViewFooter();
   return html;
 }
 
-// Backwards-compat shims so any remaining callers (toasts after CRUD ops) still work
+function renderCompanyCard(co, coJobs, {isViewer, pl, esc}) {
+  const initials = (co.name||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '·';
+  const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
+  const sortedJobs = coJobs.slice().sort((a,b) => {
+    if((!!a.archived) !== (!!b.archived)) return a.archived ? 1 : -1;
+    return a.name.localeCompare(b.name);
+  });
+  const canEdit = !isViewer;
+
+  const chips = [];
+  if(co.email)   chips.push(`<a class="cc-chip" href="mailto:${esc(co.email)}" title="${esc(co.email)}"><span class="cc-chip-icon">✉</span><span class="cc-chip-text">${esc(co.email)}</span></a>`);
+  if(co.phone)   chips.push(`<a class="cc-chip" href="tel:${esc(co.phone)}" title="${esc(co.phone)}"><span class="cc-chip-icon">📞</span><span class="cc-chip-text">${esc(co.phone)}</span></a>`);
+  if(co.website) chips.push(`<a class="cc-chip" href="${esc(webHref(co.website))}" target="_blank" rel="noopener" title="${esc(co.website)}"><span class="cc-chip-icon">🌐</span><span class="cc-chip-text">${esc(co.website)}</span></a>`);
+
+  return `<div class="contact-card cc-company">
+    <div class="cc-avatar cc-avatar-company">${esc(initials)}</div>
+    <div class="cc-info">
+      <div class="cc-header">
+        <div class="cc-name">${esc(co.name||'')}</div>
+        ${sortedJobs.length ? `<div class="cc-role">${pl(sortedJobs.length,'job')}</div>` : ''}
+      </div>
+      ${chips.length?`<div class="cc-chips">${chips.join('')}</div>`:''}
+      ${co.address?`<div class="cc-address">📍 ${esc(co.address)}</div>`:''}
+      ${co.notes?`<div class="cc-notes">${esc(co.notes)}</div>`:''}
+      ${sortedJobs.length ? `<div class="co-jobs-list">
+        <div class="co-jobs-head">
+          <span>Jobs</span>
+          <span class="cjh-count">${sortedJobs.length}</span>
+        </div>
+        ${sortedJobs.map(j => {
+          const dayCnt = j.days?.length || 0;
+          const latest = jobLatestDate(j);
+          return `<div class="co-job-row" onclick="selectJob('${j.id}');switchView('jobs')" title="View this job">
+            <span class="co-job-name ${j.archived?'archived':''}">${esc(j.name)}${j.archived?' (archived)':''}</span>
+            <span class="co-job-meta">
+              ${dayCnt ? `${dayCnt}d` : ''}${latest ? ` · ${esc(fmtDate(latest))}` : ''}
+              <span class="cjr-chevron" style="margin-left:.4rem">›</span>
+            </span>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>
+    ${canEdit?`<div class="cc-actions">
+      <button class="btn btn-ghost btn-xs" onclick="openEditCompany('${co.id}')" title="Edit">✎</button>
+      <button class="btn btn-ghost btn-xs" onclick="deleteCompany('${co.id}')" title="Delete" style="color:var(--err,#d03040)">✕</button>
+    </div>`:''}
+  </div>`;
+}
+
+// Backwards-compat shims so CRUD callers still work
 function renderContactsView() {
-  if(directorySubTab !== 'people') directorySubTab = 'people';
+  directorySubTab = 'people';
   renderDirectoryView();
 }
 function renderCompaniesView() {
-  if(directorySubTab !== 'companies') directorySubTab = 'companies';
+  directorySubTab = 'companies';
   renderDirectoryView();
 }
 
