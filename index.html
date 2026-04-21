@@ -2257,16 +2257,83 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .set-cat-default{font-size:.72rem;color:var(--text3);font-style:italic;}
 
 /* ── APP SETTINGS ── */
+.set-header{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:1rem 0 1.25rem;margin-bottom:.5rem;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.set-header-title{flex:1;min-width:0;}
+.set-header-title .section-title{font-size:1.3rem;letter-spacing:-.01em;}
+.set-header-title .section-sub{font-size:.84rem;}
+.set-header-actions{display:flex;align-items:center;gap:.6rem;flex-shrink:0;}
+.set-header-status{
+  font-size:.78rem;color:var(--text3);min-width:0;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.set-header-status.dirty{color:var(--accent);}
+.set-header-status.saved{color:var(--green);}
+.set-header-status.err{color:var(--red);}
+
 .set-group{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:1.25rem 1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow-sm);
+  padding:1.1rem 1.35rem;margin-bottom:1rem;
+}
+.set-group-head{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border);
 }
 .set-group-title{
-  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
-  color:var(--text3);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);
+  font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--text2);display:inline-flex;align-items:center;gap:.5rem;margin:0;padding:0;border:none;
 }
-.set-field{margin-bottom:.85rem;}
+.set-group-icon{
+  font-size:1rem;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:7px;
+  background:var(--accent-dim);color:var(--accent);
+}
+.set-group.danger{border-color:rgba(224,72,72,.3);background:rgba(224,72,72,.02);}
+.set-group.danger .set-group-title{color:var(--red);}
+.set-group.danger .set-group-icon{background:rgba(224,72,72,.1);color:var(--red);}
+.set-field{margin-bottom:.9rem;}
 .set-field:last-child{margin-bottom:0;}
+.set-field label{
+  display:block;font-size:.78rem;font-weight:500;color:var(--text2);margin-bottom:.25rem;
+}
+.set-field input,.set-field textarea{
+  width:100%;padding:.5rem .75rem;
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--ui);font-size:.88rem;
+  transition:border-color .12s;
+}
+.set-field input:focus,.set-field textarea:focus{
+  outline:none;border-color:var(--accent);
+}
+.set-field-help{
+  font-size:.74rem;color:var(--text3);margin-top:.3rem;line-height:1.4;
+}
+
+/* Two-column layout for short fields on wider screens */
+.set-field-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem;
+}
+.set-field-row .set-field{margin-bottom:0;}
+@media (max-width:720px){
+  .set-field-row{grid-template-columns:1fr;}
+}
+
+/* Danger zone action */
+.set-danger-row{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:.85rem;
+}
+.set-danger-info{min-width:220px;}
+.set-danger-label{
+  font-size:.9rem;font-weight:600;color:var(--text);
+}
+.set-danger-desc{font-size:.78rem;color:var(--text3);margin-top:.2rem;line-height:1.4;}
 
 /* Day list inline action buttons — only visible when day is active */
 .ri-day-inline-actions{
@@ -3066,7 +3133,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.88';
+const GRIP_VERSION = '1.0.89';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -7540,69 +7607,100 @@ async function renderSettingsView() {
   const field = (key, label, type='text', help='', rows=0) => {
     const val = (getSetting(key)||'').replace(/"/g,'&quot;');
     const input = rows > 0
-      ? `<textarea id="set-${key}" rows="${rows}" style="resize:vertical">${(getSetting(key)||'').replace(/</g,'&lt;')}</textarea>`
-      : `<input id="set-${key}" type="${type}" value="${val}">`;
-    return `<div class="fg set-field">
+      ? `<textarea id="set-${key}" rows="${rows}" oninput="onSettingsDirty()" style="resize:vertical">${(getSetting(key)||'').replace(/</g,'&lt;')}</textarea>`
+      : `<input id="set-${key}" type="${type}" value="${val}" oninput="onSettingsDirty()">`;
+    return `<div class="set-field">
       <label>${label}</label>
       ${input}
-      ${help?`<div style="font-size:.74rem;color:var(--text3);margin-top:.2rem">${help}</div>`:''}
+      ${help?`<div class="set-field-help">${help}</div>`:''}
     </div>`;
   };
 
   el.innerHTML = `
-    <div class="section-head" style="margin-bottom:1.5rem">
-      <div>
+    <div class="set-header">
+      <div class="set-header-title">
         <div class="section-title">App Settings</div>
         <div class="section-sub">Customise this installation of GRIP Gear Tracker</div>
       </div>
-      <button class="btn btn-accent" onclick="saveSettings()">Save Changes</button>
+      <div class="set-header-actions">
+        <div id="settings-status" class="set-header-status"></div>
+        <button class="btn btn-accent" onclick="saveSettings()">Save Changes</button>
+      </div>
     </div>
 
     <div class="set-group">
-      <div class="set-group-title">Branding</div>
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">🎨</span>
+          Branding
+        </div>
+      </div>
       ${field('app_name',        'App Name',    'text', 'Shown in the header, emails, and page title')}
-      ${field('owner_name',      'Owner Name',  'text', 'Used in email sign-offs — "Message from ___"')}
+      <div class="set-field-row">
+        ${field('owner_name',      'Owner Name',  'text', 'Used in email sign-offs — "Message from ___"')}
+        ${field('currency_symbol', 'Currency',    'text', 'Shown before monetary values — e.g. CA$, $, £, €')}
+      </div>
       ${field('owner_email',     'Owner Email', 'email','CC\'d on all outgoing borrow request emails')}
-      ${field('currency_symbol', 'Currency',    'text', 'Shown before monetary values — e.g. CA$, $, £, €')}
     </div>
 
     <div class="set-group">
-      <div class="set-group-title">Borrow Portal</div>
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">📦</span>
+          Borrow Portal
+        </div>
+      </div>
       ${field('borrow_intro', 'Portal Intro Text', 'text', 'Shown at the top of the renter\'s borrow request form', 3)}
     </div>
 
     <div class="set-group">
-      <div class="set-group-title">Emails</div>
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">✉️</span>
+          Emails
+        </div>
+      </div>
       ${field('email_footer', 'Email Footer Text', 'text', 'Appears at the bottom of all outgoing emails')}
     </div>
 
-    <div id="settings-status" style="margin-top:.75rem;font-size:.84rem;min-height:1.2em"></div>
-
     <div class="set-group" id="set-categories-group">
-      <div class="set-group-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>Gear Categories</span>
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">🏷️</span>
+          Gear Categories
+        </div>
         <button class="btn btn-ghost btn-xs" onclick="addNewCategory()">＋ Add Category</button>
       </div>
       <div id="set-cat-list"></div>
     </div>
 
-    <div class="set-group" style="border-color:rgba(240,72,72,.25)">
-      <div class="set-group-title" style="color:var(--red)">Danger Zone</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
-        <div>
-          <div style="font-size:.88rem;font-weight:500;color:var(--text)">Reset all app data</div>
-          <div style="font-size:.78rem;color:var(--text3);margin-top:.15rem">Permanently deletes all jobs, gear, inventory, contacts and logs. Settings and users are kept.</div>
+    <div class="set-group danger">
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">⚠️</span>
+          Danger Zone
+        </div>
+      </div>
+      <div class="set-danger-row">
+        <div class="set-danger-info">
+          <div class="set-danger-label">Reset all app data</div>
+          <div class="set-danger-desc">Permanently deletes all jobs, gear, inventory, contacts, companies, and logs. Settings and users are kept.</div>
         </div>
         <button class="btn btn-danger btn-sm" onclick="authReset()">⚠ Reset Data</button>
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--text3);font-family:var(--mono)">
-      GRIP Gear Tracker v${GRIP_VERSION} · ${GRIP_BUILD_DATE}
-    </div>
     ${renderViewFooter()}
   `;
   renderCategorySettings();
+}
+
+// Called on every settings input change — marks the status as "unsaved"
+function onSettingsDirty() {
+  const statusEl = document.getElementById('settings-status');
+  if(!statusEl) return;
+  statusEl.className = 'set-header-status dirty';
+  statusEl.innerHTML = '● Unsaved changes';
 }
 
 async function saveSettings() {
@@ -7613,7 +7711,7 @@ async function saveSettings() {
     if(el) payload[k] = el.value.trim();
   });
   const statusEl = document.getElementById('settings-status');
-  if(statusEl){ statusEl.style.color='var(--text3)'; statusEl.textContent='Saving…'; }
+  if(statusEl){ statusEl.className='set-header-status'; statusEl.innerHTML='Saving…'; }
   // Use direct fetch to avoid any apiFetch error swallowing
   try {
     const url = `${API}?r=settings`;
@@ -7627,15 +7725,15 @@ async function saveSettings() {
       appSettings = {...appSettings, ...payload};
       applySettingsToUI();
       toast('Settings saved.','success');
-      if(statusEl){ statusEl.style.color='var(--green)'; statusEl.textContent='✓ Saved.'; setTimeout(()=>statusEl.textContent='',2500); }
+      if(statusEl){ statusEl.className='set-header-status saved'; statusEl.innerHTML='✓ Saved'; setTimeout(()=>{if(statusEl.classList.contains('saved'))statusEl.innerHTML='';},2500); }
     } else {
       const msg = data?.error || `HTTP ${res.status}`;
       toast('Failed to save: '+msg,'error');
-      if(statusEl){ statusEl.style.color='var(--red)'; statusEl.textContent='Error: '+msg; }
+      if(statusEl){ statusEl.className='set-header-status err'; statusEl.innerHTML='Error: '+msg; }
     }
   } catch(e){
     toast('Network error saving settings','error');
-    if(statusEl){ statusEl.style.color='var(--red)'; statusEl.textContent='Network error: '+e.message; }
+    if(statusEl){ statusEl.className='set-header-status err'; statusEl.innerHTML='Network error: '+e.message; }
   }
 }
 
