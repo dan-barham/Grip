@@ -131,19 +131,19 @@ header{
 .view.active{display:flex;}
 
 /* Views that stack content vertically get flex-direction:column */
-#view-home,#view-calendar,#view-contacts,#view-companies,#view-users,#view-inventory,#view-borrow,#view-settings{
+#view-home,#view-calendar,#view-contacts,#view-users,#view-inventory,#view-borrow,#view-settings{
   flex-direction:column;
 }
 
 /* Content panes — fill their column, scroll internally */
 #view-home{overflow-y:auto;}
-#calendar-content,#contacts-content,#companies-content,
+#calendar-content,#contacts-content,
 #users-content,#borrow-admin-content{
   flex:1;overflow-y:auto;
 }
 #home-content{     padding:1.8rem 2rem;   max-width:1100px;width:100%;margin:0 auto;flex:1;}
 #calendar-content{ padding:.3rem .8rem 0; width:100%;}
-#contacts-content,#companies-content{ padding:.6rem 1.8rem 1.5rem; max-width:900px;width:100%;margin:0 auto;}
+#contacts-content{ padding:.6rem 1.8rem 1.5rem; max-width:900px;width:100%;margin:0 auto;}
 #users-content{    padding:1.5rem 1.8rem; max-width:800px;width:100%;margin:0 auto;}
 #borrow-admin-content{ padding:1.5rem 1.8rem; max-width:1000px;width:100%;margin:0 auto;}
 
@@ -1163,6 +1163,34 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .cc-actions{display:flex;gap:.35rem;flex-shrink:0;}
 .cc-notes{font-size:.78rem;color:var(--text3);margin-top:.3rem;font-style:italic;}
 
+/* Per-company jobs list on the company card */
+.co-jobs-list{
+  margin-top:.55rem;padding-top:.45rem;
+  border-top:1px dashed var(--border);
+  display:flex;flex-direction:column;gap:.15rem;
+}
+.co-jobs-head{
+  font-size:.68rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);margin-bottom:.2rem;
+}
+.co-job-row{
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  font-size:.8rem;padding:.25rem .5rem;border-radius:5px;
+  cursor:pointer;transition:background .08s;
+  color:var(--text2);
+}
+.co-job-row:hover{background:var(--surface2);color:var(--text);}
+.co-job-name{
+  flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.co-job-name.archived{color:var(--text3);}
+.co-job-meta{
+  font-size:.7rem;font-family:var(--mono);color:var(--text3);
+  flex-shrink:0;
+}
+
 /* Job contacts panel inside job rail item */
 .job-contacts-strip{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.3rem;}
 .jc-chip{
@@ -1499,7 +1527,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   #view-home,#view-calendar,#view-contacts,#view-users,
   #view-inventory,#view-borrow,#view-settings{overflow-y:auto;}
   #main-panel{overflow-y:auto;flex:1;}
-  #home-content,#calendar-content,#contacts-content,#companies-content,
+  #home-content,#calendar-content,#contacts-content,
   #users-content,#borrow-admin-content{overflow-y:visible;flex:none;}
 
   /* ── Content padding ── */
@@ -1744,8 +1772,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <button class="nav-tab active" onclick="switchView('home')">Home</button>
     <button class="nav-tab" onclick="switchView('jobs')">Jobs</button>
     <button class="nav-tab" onclick="switchView('calendar')">Calendar</button>
-    <button class="nav-tab" onclick="switchView('contacts')">Contacts</button>
-    <button class="nav-tab" onclick="switchView('companies')">Companies</button>
+    <button class="nav-tab" onclick="switchView('contacts')">Directory</button>
     <button class="nav-tab" id="nav-requests" onclick="switchView('borrow')" style="display:none">Requests</button>
     <button class="nav-tab" onclick="switchView('inventory')">Inventory</button>
     <button class="nav-tab" id="nav-users" onclick="switchView('users')" style="display:none">Users</button>
@@ -1830,14 +1857,9 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <div id="calendar-content"></div>
   </div>
 
-  <!-- CONTACTS VIEW -->
+  <!-- DIRECTORY VIEW (Contacts + Companies with sub-tabs) -->
   <div class="view" id="view-contacts">
     <div id="contacts-content"></div>
-  </div>
-
-  <!-- COMPANIES VIEW -->
-  <div class="view" id="view-companies">
-    <div id="companies-content"></div>
   </div>
 
   <!-- USERS VIEW -->
@@ -2044,10 +2066,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   <div class="drawer-body">
     <div class="mob-more-grid">
       <button class="mob-more-item" id="mob-more-contacts" onclick="closeAllDrawers();mobileNav('contacts')">
-        <span style="font-size:1.6rem">👥</span><span>Contacts</span>
-      </button>
-      <button class="mob-more-item" id="mob-more-companies" onclick="closeAllDrawers();mobileNav('companies')">
-        <span style="font-size:1.6rem">🏢</span><span>Companies</span>
+        <span style="font-size:1.6rem">👥</span><span>Directory</span>
       </button>
       <button class="mob-more-item" id="mob-more-requests" onclick="closeAllDrawers();mobileNav('borrow')" style="display:none">
         <span style="font-size:1.6rem">📋</span><span>Requests</span>
@@ -2491,7 +2510,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.81';
+const GRIP_VERSION = '1.0.82';
 const GRIP_BUILD_DATE = '2026-04-21';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
@@ -2706,8 +2725,7 @@ function switchView(v) {
   if(v==='users')    {if(currentUser?.role==='admin')renderUsersView();}
   if(v==='borrow')   {if(currentUser?.role==='admin')renderBorrowAdminView();}
   if(v==='settings') {if(currentUser?.role==='admin')renderSettingsView();}
-  if(v==='contacts') {renderContactsView();}
-  if(v==='companies') {renderCompaniesView();}
+  if(v==='contacts') {renderDirectoryView();}
 }
 function mobileNav(v){
   closeAllDrawers();
@@ -5857,77 +5875,49 @@ async function deleteCompany(id) {
   if(activeView==='companies') renderCompaniesView();
 }
 
-// ── Companies view ────────────────────────────────────────
-function renderCompaniesView() {
-  const el = document.getElementById('companies-content'); if(!el) return;
-  const isViewer = currentUser?.role==='viewer';
-  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
-  const coPl = n => `${n} ${n===1?'company':'companies'}`;
-  const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
+// ══════════════════════════════════════════════════════════
+//  DIRECTORY VIEW  — unified People + Companies with sub-tabs
+// ══════════════════════════════════════════════════════════
 
-  let html = `<div class="section-head">
-    <div>
-      <div class="section-title">Production Companies</div>
-      <div class="section-sub">${coPl(companies.length)} in your directory</div>
-    </div>
-    ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>' : ''}
-  </div>`;
+let directorySubTab = 'people'; // 'people' | 'companies'
 
-  if(!companies.length){
-    html += '<div class="empty" style="padding:2rem 0">No production companies yet. Add client companies and production houses you work with.</div>';
-    html += renderViewFooter();
-    el.innerHTML = html; return;
-  }
-
-  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const webHref = w => {
-    if(!w) return '';
-    return /^https?:\/\//i.test(w) ? w : 'https://' + w;
-  };
-
-  // Find job count per company
-  const jobCounts = {};
-  S.jobs.forEach(j => { if(j.co) jobCounts[j.co] = (jobCounts[j.co]||0) + 1; });
-
-  html += `<div style="display:flex;flex-direction:column;gap:.6rem">`;
-  companies.forEach(co => {
-    const initials = co.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const jobCount = jobCounts[co.name] || 0;
-    const canEdit = !isViewer;
-    html += `<div class="contact-card">
-      <div class="cc-avatar" style="background:var(--accent2,var(--accent));">${esc(initials)}</div>
-      <div class="cc-info">
-        <div class="cc-name">${esc(co.name)}</div>
-        ${jobCount ? `<div class="cc-role">${pl(jobCount,'job')}</div>` : ''}
-        <div class="cc-meta">
-          ${co.email?`<a href="mailto:${esc(co.email)}">✉ ${esc(co.email)}</a>`:''}
-          ${co.phone?`<span>📞 ${esc(co.phone)}</span>`:''}
-          ${co.website?`<a href="${esc(webHref(co.website))}" target="_blank" rel="noopener">🌐 ${esc(co.website)}</a>`:''}
-        </div>
-        ${co.address?`<div class="cc-notes" style="white-space:pre-line">📍 ${esc(co.address)}</div>`:''}
-        ${co.notes?`<div class="cc-notes">${esc(co.notes)}</div>`:''}
-      </div>
-      ${canEdit?`<div class="cc-actions">
-        <button class="btn btn-ghost btn-xs" onclick="openEditCompany('${co.id}')" title="Edit">✎</button>
-        <button class="btn btn-ghost btn-xs" onclick="deleteCompany('${co.id}')" title="Delete" style="color:var(--err,#d03040)">✕</button>
-      </div>`:''}
-    </div>`;
-  });
-  html += `</div>`;
-  html += renderViewFooter();
-  el.innerHTML = html;
+function setDirectorySubTab(tab) {
+  directorySubTab = tab;
+  renderDirectoryView();
 }
 
-// ── Contacts view ─────────────────────────────────────────
-function renderContactsView() {
+function renderDirectoryView() {
   const el = document.getElementById('contacts-content'); if(!el) return;
   const isViewer = currentUser?.role==='viewer';
   const pl = (n,w) => `${n} ${w}${n!==1?'s':''}`;
+  const coPl = n => `${n} ${n===1?'company':'companies'}`;
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+  // Sub-tab switcher
+  const tabBar = `<div style="display:flex;gap:.35rem;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)">
+    <button class="nav-tab ${directorySubTab==='people'?'active':''}" onclick="setDirectorySubTab('people')">
+      👥 People <span style="opacity:.65;font-weight:400;margin-left:.25rem">${S.contacts.length}</span>
+    </button>
+    <button class="nav-tab ${directorySubTab==='companies'?'active':''}" onclick="setDirectorySubTab('companies')">
+      🏢 Companies <span style="opacity:.65;font-weight:400;margin-left:.25rem">${(S.companies||[]).length}</span>
+    </button>
+  </div>`;
+
+  if(directorySubTab === 'companies'){
+    el.innerHTML = tabBar + renderCompaniesSection({isViewer, pl, coPl, esc});
+    return;
+  }
+
+  // People tab (default)
+  el.innerHTML = tabBar + renderContactsSection({isViewer, pl, esc});
+}
+
+// ── Contacts section (people) ─────────────────────────────
+function renderContactsSection({isViewer, pl, esc}) {
   let html = `<div class="section-head">
     <div>
-      <div class="section-title">Contacts</div>
-      <div class="section-sub">${pl(S.contacts.length,'contact')} in address book</div>
+      <div class="section-title">People</div>
+      <div class="section-sub">${pl(S.contacts.length,'contact')} in your address book</div>
     </div>
     ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddContact()">＋ Add Contact</button>' : ''}
   </div>`;
@@ -5935,7 +5925,7 @@ function renderContactsView() {
   if(!S.contacts.length){
     html += '<div class="empty" style="padding:2rem 0">No contacts yet. Add your crew, clients, and collaborators.</div>';
     html += renderViewFooter();
-  el.innerHTML = html; return;
+    return html;
   }
 
   // Group by role
@@ -5948,22 +5938,22 @@ function renderContactsView() {
   const sorted = Object.keys(byRole).sort((a,b)=>a.localeCompare(b));
 
   sorted.forEach(role => {
-    html += `<div class="home-section-title" style="margin-bottom:.5rem">${role}</div>
+    html += `<div class="home-section-title" style="margin-bottom:.5rem">${esc(role)}</div>
     <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1.2rem">`;
     byRole[role].forEach(ct => {
       const initials = ct.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const canEdit = !isViewer;
       html += `<div class="contact-card">
-        <div class="cc-avatar">${initials}</div>
+        <div class="cc-avatar">${esc(initials)}</div>
         <div class="cc-info">
-          <div class="cc-name">${ct.name}</div>
-          ${ct.role?`<div class="cc-role">${ct.role}</div>`:''}
+          <div class="cc-name">${esc(ct.name)}</div>
+          ${ct.role?`<div class="cc-role">${esc(ct.role)}</div>`:''}
           <div class="cc-meta">
-            ${ct.email?`<a href="mailto:${ct.email}">✉ ${ct.email}</a>`:''}
-            ${ct.phone?`<span>📞 ${ct.phone}</span>`:''}
-            ${ct.company?`<span>🏢 ${ct.company}</span>`:''}
+            ${ct.email?`<a href="mailto:${esc(ct.email)}">✉ ${esc(ct.email)}</a>`:''}
+            ${ct.phone?`<span>📞 ${esc(ct.phone)}</span>`:''}
+            ${ct.company?`<span>🏢 ${esc(ct.company)}</span>`:''}
           </div>
-          ${ct.notes?`<div class="cc-notes">${ct.notes}</div>`:''}
+          ${ct.notes?`<div class="cc-notes">${esc(ct.notes)}</div>`:''}
         </div>
         ${canEdit?`<div class="cc-actions">
           <button class="btn btn-ghost btn-xs" onclick="openEditContact('${ct.id}')">✎</button>
@@ -5973,8 +5963,93 @@ function renderContactsView() {
     });
     html += '</div>';
   });
+  return html;
+}
 
-  el.innerHTML = html;
+// ── Companies section ─────────────────────────────────────
+function renderCompaniesSection({isViewer, pl, coPl, esc}) {
+  const companies = (S.companies||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+
+  let html = `<div class="section-head">
+    <div>
+      <div class="section-title">Production Companies</div>
+      <div class="section-sub">${coPl(companies.length)} in your directory</div>
+    </div>
+    ${!isViewer ? '<button class="home-action-btn primary" onclick="openAddCompany()">＋ Add Company</button>' : ''}
+  </div>`;
+
+  if(!companies.length){
+    html += '<div class="empty" style="padding:2rem 0">No production companies yet. Add client companies and production houses you work with.</div>';
+    html += renderViewFooter();
+    return html;
+  }
+
+  const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
+
+  // Group jobs by their `co` (production company name), ignoring empty
+  const jobsByCo = {};
+  S.jobs.forEach(j => {
+    if(!j.co) return;
+    if(!jobsByCo[j.co]) jobsByCo[j.co] = [];
+    jobsByCo[j.co].push(j);
+  });
+
+  html += `<div style="display:flex;flex-direction:column;gap:.6rem">`;
+  companies.forEach(co => {
+    const initials = co.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const coJobs = (jobsByCo[co.name] || []).slice().sort((a,b) => {
+      // Archived last, then by name
+      if((!!a.archived) !== (!!b.archived)) return a.archived ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+    const canEdit = !isViewer;
+
+    html += `<div class="contact-card">
+      <div class="cc-avatar" style="background:var(--accent2,var(--accent));">${esc(initials)}</div>
+      <div class="cc-info">
+        <div class="cc-name">${esc(co.name)}</div>
+        ${coJobs.length ? `<div class="cc-role">${pl(coJobs.length,'job')}</div>` : ''}
+        <div class="cc-meta">
+          ${co.email?`<a href="mailto:${esc(co.email)}">✉ ${esc(co.email)}</a>`:''}
+          ${co.phone?`<span>📞 ${esc(co.phone)}</span>`:''}
+          ${co.website?`<a href="${esc(webHref(co.website))}" target="_blank" rel="noopener">🌐 ${esc(co.website)}</a>`:''}
+        </div>
+        ${co.address?`<div class="cc-notes" style="white-space:pre-line">📍 ${esc(co.address)}</div>`:''}
+        ${co.notes?`<div class="cc-notes">${esc(co.notes)}</div>`:''}
+        ${coJobs.length ? `<div class="co-jobs-list">
+          <div class="co-jobs-head">Jobs</div>
+          ${coJobs.map(j => {
+            const dayCnt = j.days?.length || 0;
+            const latest = jobLatestDate(j);
+            return `<div class="co-job-row" onclick="selectJob('${j.id}');switchView('jobs')" title="View this job">
+              <span class="co-job-name ${j.archived?'archived':''}">${esc(j.name)}${j.archived?' <span style=\"opacity:.55\">(archived)</span>':''}</span>
+              <span class="co-job-meta">
+                ${dayCnt ? `${dayCnt}d` : ''}
+                ${latest ? ` · ${esc(fmtDate(latest))}` : ''}
+              </span>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>
+      ${canEdit?`<div class="cc-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openEditCompany('${co.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost btn-xs" onclick="deleteCompany('${co.id}')" title="Delete" style="color:var(--err,#d03040)">✕</button>
+      </div>`:''}
+    </div>`;
+  });
+  html += `</div>`;
+  html += renderViewFooter();
+  return html;
+}
+
+// Backwards-compat shims so any remaining callers (toasts after CRUD ops) still work
+function renderContactsView() {
+  if(directorySubTab !== 'people') directorySubTab = 'people';
+  renderDirectoryView();
+}
+function renderCompaniesView() {
+  if(directorySubTab !== 'companies') directorySubTab = 'companies';
+  renderDirectoryView();
 }
 
 // ── Job contacts ──────────────────────────────────────────
