@@ -504,10 +504,51 @@ def main():
                     help='Git ref to compare against (default HEAD).')
     ap.add_argument('--no-changelog', action='store_true',
                     help='Skip CHANGELOG.md update.')
+    ap.add_argument('--set', dest='set_version', default=None,
+                    help='Set an explicit version (e.g. --set 1.16.0). Bypasses classifier; '
+                         'useful for retroactive calibration. Use with -m to document the reason.')
     args = ap.parse_args()
 
     today = datetime.date.today().isoformat()
     old   = read_current_version()
+
+    if args.set_version:
+        m = re.match(r'^(\d+)\.(\d+)\.(\d+)$', args.set_version)
+        if not m:
+            sys.exit(f"error: --set expects X.Y.Z format, got {args.set_version!r}")
+        new = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        level = (
+            'major' if new[0] > old[0] else
+            'minor' if new[0] == old[0] and new[1] > old[1] else
+            'patch' if new[0] == old[0] and new[1] == old[1] and new[2] > old[2] else
+            'rewind'  # going backwards, rare
+        )
+        reasons = [f"explicitly set via --set {args.set_version}"]
+        if args.message: reasons.append(args.message)
+        analysis = Analysis(level=level, reasons=reasons)
+        print_analysis(analysis, old, new)
+        if args.dry:
+            print(col('dim','(dry run -- no changes written)\n'))
+            return 0
+        if not args.yes:
+            try:
+                ans = input(f"  Confirm set version to {col(level, args.set_version)}? [Y/n] ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print('\naborted.'); return 1
+            if ans and ans.lower() != 'y':
+                print('aborted.'); return 1
+        write_version(new, today)
+        if VERSION_FILE_PHP.exists():
+            print(f"  {col('dim','-')} grip-version.php updated")
+        print(f"  {col('dim','-')} index.html updated")
+        if not args.no_changelog:
+            write_changelog(new, today, level, analysis, args.message)
+            print(f"  {col('dim','-')} CHANGELOG.md updated")
+        old_s = f"{old[0]}.{old[1]}.{old[2]}"
+        new_s = f"{new[0]}.{new[1]}.{new[2]}"
+        print(f"\n  {col('bold','OK')} GRIP {col('dim',old_s)} -> {col(level, new_s)}  "
+              f"({today}, {level} / --set)\n")
+        return 0
 
     if args.level:
         # Still analyze so the changelog has signals

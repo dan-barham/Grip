@@ -1,7 +1,43 @@
 # Changelog
 
-> Generated automatically by `grip-bump-version.py`. Format: [version] - date _level_
+> Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
-## [1.1.0] - 2026-04-22  _minor_
+---
 
-- Smart diff-aware version bumper: auto-classifies commits as patch/minor/major based on git diff analysis (new functions, API endpoints, schema changes, removed columns), interactive confirmation with override options, and auto-generates CHANGELOG.md entries
+## [1.16.0] — 2026-04-22  _calibration_
+
+**Retroactive version calibration.** The project had been shipping every change
+as a patch bump (`1.0.58`, `1.0.59`, ... up through `1.1.0`) when many were
+actually feature-bearing minor releases. With the new diff-aware version bumper
+now in place, the full commit history was re-classified and the current version
+rebased to reflect proper semver. No code changed in this bump — just the
+version strings in `index.html` and `grip-version.php`.
+
+Breakdown of the minor-worthy releases that got us here, oldest to newest:
+
+- **1.1.0** — GitHub Actions auto-deploy workflow
+- **1.2.0** — Drop Director input; auto-derive from top ATL contact + Production Co. autocomplete
+- **1.3.0** — Production Companies feature (new CRUD page, nav tab, schema migration)
+- **1.4.0** — Merge Contacts + Companies into unified Directory view with sub-tabs
+- **1.5.0** — Directory redesign (segmented tabs, live search, contact chips, accent stripes)
+- **1.6.0** — Directory sort controls, role/quick filters, bulk select/delete/assign
+- **1.7.0** — Home visual hierarchy refresh (greeting, KPI tiles, Today/Upcoming cards)
+- **1.8.0** — Jobs visual hierarchy refresh (iconified meta, grouped actions, tinted stats)
+- **1.9.0** — Inventory visual hierarchy refresh (summary strip, category rail, hover actions)
+- **1.10.0** — Settings visual hierarchy refresh (sticky save bar, iconified groups, Danger Zone)
+- **1.11.0** — Users + Requests visual hierarchy refresh (role cards, status KPIs, status stripes)
+- **1.12.0** — Calendar visual hierarchy refresh (segmented tabs, today indicator, card legend)
+- **1.13.0** — Job Templates feature (`job_templates` table + REST API, template picker)
+- **1.14.0** — Job Dashboard feature (Overview tab with summary, timeline, gear master, damage, activity)
+- **1.15.0** — PDF cover page + browser Back button navigation
+- **1.16.0** — Smart diff-aware version bumper (this tool)
+
+Interspersed patches (not listed above) covered: mobile polish, theme audit,
+deploy infrastructure iterations, email diagnostic improvements, email send
+fix (HTML attachment path), and Gmail plaintext rendering fix.
+
+No breaking changes have occurred since the 1.0.57 initial commit; major stays
+at 1. The next **2.0.0** will be reserved for an actual breaking change —
+major schema rework, API redesign, or similar.
+
+---
