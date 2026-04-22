@@ -1238,14 +1238,18 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .weather-icon{font-size:1rem;}
 
 /* ── CALENDAR WEEK VIEW ── */
-.cal-view-tabs{display:flex;gap:.3rem;margin-right:.5rem;}
-.cal-view-tab{
-  font-size:.78rem;font-family:var(--ui);padding:.3rem .7rem;
-  border-radius:5px;border:1px solid var(--border2);
-  background:none;color:var(--text3);cursor:pointer;transition:all .12s;
+.cal-view-tabs{
+  display:inline-flex;gap:.15rem;padding:.12rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+  margin-right:.3rem;
 }
-.cal-view-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-.cal-view-tab:hover:not(.active){background:var(--surface2);color:var(--text);}
+.cal-view-tab{
+  font-size:.8rem;font-weight:500;font-family:var(--ui);padding:.3rem .8rem;
+  border-radius:5px;border:none;
+  background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;
+}
+.cal-view-tab.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 1px 3px rgba(245,166,35,.25);}
+.cal-view-tab:hover:not(.active){background:var(--surface);color:var(--text);}
 
 .week-grid{display:grid;grid-template-columns:52px repeat(7,1fr);border-left:1px solid var(--border);border-top:1px solid var(--border);}
 .week-col-head{
@@ -1967,27 +1971,53 @@ td.ta .btn+.btn{margin-left:.25rem;}
 
 /* ── BOOKING CARD ── */
 /* ── CALENDAR ── */
-.cal-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;flex-wrap:wrap;}
-.cal-title{font-size:1.1rem;font-weight:600;color:var(--text);}
-.cal-nav{display:flex;gap:.3rem;}
+.cal-header{
+  display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap;
+  padding:.65rem .7rem;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+}
+.cal-title{
+  font-size:1.25rem;font-weight:700;color:var(--text);letter-spacing:-.01em;
+  padding:0 .3rem;
+}
+.cal-nav{
+  display:flex;gap:.15rem;padding:.12rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+}
+.cal-nav-btn{
+  background:transparent;border:none;border-radius:5px;
+  color:var(--text2);font-family:var(--ui);font-size:.85rem;font-weight:500;
+  padding:.3rem .65rem;cursor:pointer;transition:all .1s;
+  display:inline-flex;align-items:center;justify-content:center;min-width:26px;
+}
+.cal-nav-btn:hover{background:var(--surface);color:var(--text);}
+.cal-nav-today{
+  padding:.3rem .8rem;font-weight:600;
+  border-left:1px solid var(--border);border-right:1px solid var(--border);border-radius:0;
+}
 .cal-grid{
   display:grid;grid-template-columns:repeat(7,1fr);
   border-left:1px solid var(--border);border-top:1px solid var(--border);
+  border-radius:9px 9px 0 0;overflow:hidden;
   min-width:560px;
 }
 .cal-day-label{
-  background:var(--surface);border-right:1px solid var(--border);border-bottom:1px solid var(--border);
-  padding:.35rem .4rem;font-size:.72rem;font-weight:600;text-transform:uppercase;
-  letter-spacing:.05em;color:var(--text3);text-align:center;
+  background:var(--surface2);border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:.5rem .4rem;font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text3);text-align:center;
 }
 .cal-cell{
   background:var(--surface);border-right:1px solid var(--border);
-  min-height:88px;padding:.35rem .4rem;vertical-align:top;cursor:default;
+  min-height:95px;padding:.4rem .45rem;vertical-align:top;cursor:default;
+  transition:background .08s;
 }
-.cal-cell.today{background:rgba(240,160,32,.07);}
+.cal-cell.today{
+  background:rgba(240,160,32,.06);
+  box-shadow:inset 0 2px 0 var(--accent);
+}
+.cal-cell.other-month{background:var(--surface2);}
 .cal-cell.other-month .cal-cell-date{opacity:.35;}
 .cal-cell-date{
-  font-size:.78rem;font-weight:600;color:var(--text3);margin-bottom:.3rem;
+  font-size:.78rem;font-weight:600;color:var(--text3);margin-bottom:.35rem;
   width:22px;height:22px;display:flex;align-items:center;justify-content:center;
   border-radius:50%;
 }
@@ -2004,23 +2034,24 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .cal-week-events{
   position:absolute;
   top:30px;left:0;right:0;
-  display:flex;flex-direction:column;gap:2px;
-  padding:0 1px 4px;
+  display:flex;flex-direction:column;gap:3px;
+  padding:0 2px 5px;
   pointer-events:none;
 }
 .cal-event-lane{
   display:grid;grid-template-columns:repeat(7,1fr);
-  min-height:19px;
+  min-height:20px;
   pointer-events:none;
 }
 .cal-event-block{
-  font-size:.7rem;font-weight:500;
-  padding:.16rem .35rem;
+  font-size:.7rem;font-weight:600;letter-spacing:-.005em;
+  padding:.18rem .45rem;border-radius:3px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   cursor:pointer;line-height:1.3;
   pointer-events:all;
+  transition:filter .1s, transform .1s;
 }
-.cal-event-block:hover{filter:brightness(1.08);}
+.cal-event-block:hover{filter:brightness(1.1);transform:translateY(-1px);}
 /* Legacy chip styles kept for week view */
 .cal-chip{
   font-size:.68rem;font-family:var(--mono);
@@ -2032,11 +2063,20 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .cal-chip:hover{border-color:var(--border3);}
 .cal-chip.pending {border-left:2px solid var(--accent);}
 .cal-chip.approved{border-left:2px solid var(--green);}
-.cal-chip.shoot-day{border-left:2px solid var(--accent);background:rgba(240,160,32,.1);color:var(--accent);}
-.cal-scroll-wrap{overflow-x:auto;}
-.cal-legend{display:flex;gap:1rem;margin-top:.75rem;flex-wrap:wrap;}
-.cal-leg-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text3);}
-.cal-leg-dot{width:10px;height:10px;border-radius:2px;}
+.cal-chip.shoot-day{border-left:2px solid var(--accent);background:rgba(240,160,32,.12);color:var(--accent);}
+.cal-scroll-wrap{overflow-x:auto;border-radius:0 0 9px 9px;border:1px solid var(--border);border-top:none;}
+.cal-scroll-wrap .cal-grid{border-radius:0;border:none;}
+
+/* Legend moved to a cleaner card */
+.cal-legend{
+  display:flex;gap:1rem;margin-top:.9rem;flex-wrap:wrap;
+  padding:.6rem .85rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+}
+.cal-leg-item{
+  display:flex;align-items:center;gap:.45rem;font-size:.78rem;color:var(--text2);
+  font-weight:500;
+}
+.cal-leg-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
 
 /* ── USERS TABLE ── */
 .users-table{width:100%;border-collapse:collapse;font-size:.88rem;}
@@ -3315,8 +3355,8 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.90';
-const GRIP_BUILD_DATE = '2026-04-21';
+const GRIP_VERSION = '1.0.91';
+const GRIP_BUILD_DATE = '2026-04-22';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities
@@ -6230,15 +6270,14 @@ function calHeaderHtml(titleStr) {
       <button class="cal-view-tab ${calView==='month'?'active':''}" onclick="calView='month';renderCalendarView()">Month</button>
       <button class="cal-view-tab ${calView==='week'?'active':''}" onclick="calView='week';if(!calWeekStart)calWeekStart=getWeekStart(new Date());renderCalendarView()">Week</button>
     </div>
-    <div class="cal-title">${titleStr}</div>
     <div class="cal-nav">
-      <button class="btn btn-ghost btn-sm" onclick="calNav(-1)">‹</button>
-      <button class="btn btn-ghost btn-sm" onclick="calNav(0)">Today</button>
-      <button class="btn btn-ghost btn-sm" onclick="calNav(1)">›</button>
+      <button class="cal-nav-btn" onclick="calNav(-1)" title="Previous">‹</button>
+      <button class="cal-nav-btn cal-nav-today" onclick="calNav(0)">Today</button>
+      <button class="cal-nav-btn" onclick="calNav(1)" title="Next">›</button>
     </div>
+    <div class="cal-title">${titleStr}</div>
     <div style="flex:1"></div>
     <button class="btn btn-ghost btn-sm" onclick="openCalSubscribe()" title="Subscribe to shoot schedule in Google Calendar / Apple Calendar">📅 Subscribe</button>
-    
   </div>`;
 }
 
