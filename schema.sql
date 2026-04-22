@@ -149,3 +149,15 @@ CREATE TABLE IF NOT EXISTS activity_log (
   user_id    VARCHAR(20)  DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- Reusable job templates: capture gear list + default metadata to scaffold new jobs.
+CREATE TABLE IF NOT EXISTS job_templates (
+  id          VARCHAR(20)  PRIMARY KEY,
+  name        VARCHAR(255) NOT NULL,
+  description TEXT         DEFAULT NULL,
+  co          VARCHAR(255) DEFAULT '',
+  notes       TEXT         DEFAULT NULL,
+  gear        JSON         DEFAULT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_jt_name (name)
+) ENGINE=InnoDB;

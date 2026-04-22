@@ -1045,6 +1045,77 @@ if($resource==='production_companies'){
 }
 
 // ════════════════════════════════════════════════════════════
+//  JOB TEMPLATES — reusable gear-list templates
+// ════════════════════════════════════════════════════════════
+if($resource==='job_templates'){
+
+    // Auto-migrate
+    db()->exec("CREATE TABLE IF NOT EXISTS job_templates (
+        id          VARCHAR(20)  PRIMARY KEY,
+        name        VARCHAR(255) NOT NULL,
+        description TEXT,
+        co          VARCHAR(255) DEFAULT '',
+        notes       TEXT,
+        gear        JSON,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_jt_name (name)
+    ) ENGINE=InnoDB");
+
+    if($method==='GET'&&!$id){
+        $rows = db()->query('SELECT * FROM job_templates ORDER BY name')->fetchAll();
+        foreach($rows as &$r){
+            if(isset($r['gear']) && is_string($r['gear'])){
+                $dec = json_decode($r['gear'], true);
+                $r['gear'] = is_array($dec) ? $dec : [];
+            }
+        }
+        json_out($rows);
+    }
+
+    if($method==='POST'&&!$id){
+        require_role('admin','operator');
+        $b=body(); $tid=uid();
+        $name = trim($b['name']??'');
+        if(!$name) err('Template name required');
+        $gearJson = json_encode($b['gear'] ?? []);
+        try {
+            db()->prepare('INSERT INTO job_templates (id,name,description,co,notes,gear) VALUES (?,?,?,?,?,?)')
+                ->execute([$tid, $name,
+                    trim($b['description']??''), trim($b['co']??''),
+                    trim($b['notes']??''), $gearJson]);
+        } catch(PDOException $e) {
+            if($e->getCode()==='23000') err('A template with that name already exists.', 409);
+            throw $e;
+        }
+        json_out(['id'=>$tid]);
+    }
+
+    if($method==='PUT'&&$id){
+        require_role('admin','operator');
+        $b=body();
+        $name = trim($b['name']??'');
+        if(!$name) err('Template name required');
+        $gearJson = json_encode($b['gear'] ?? []);
+        try {
+            db()->prepare('UPDATE job_templates SET name=?,description=?,co=?,notes=?,gear=? WHERE id=?')
+                ->execute([$name,
+                    trim($b['description']??''), trim($b['co']??''),
+                    trim($b['notes']??''), $gearJson, $id]);
+        } catch(PDOException $e) {
+            if($e->getCode()==='23000') err('A template with that name already exists.', 409);
+            throw $e;
+        }
+        json_out(['ok'=>true]);
+    }
+
+    if($method==='DELETE'&&$id){
+        require_role('admin','operator');
+        db()->prepare('DELETE FROM job_templates WHERE id=?')->execute([$id]);
+        json_out(['ok'=>true]);
+    }
+}
+
+// ════════════════════════════════════════════════════════════
 //  JOB CONTACTS  — contacts assigned to a specific job
 // ════════════════════════════════════════════════════════════
 if($resource==='job_contacts'){

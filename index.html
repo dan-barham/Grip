@@ -3211,12 +3211,40 @@ td.ta .btn+.btn{margin-left:.25rem;}
 
 <div class="overlay" id="m-new-job" style="display:none"><div class="modal">
   <div class="modal-title">New Job</div>
+  <div class="fg" id="mj-template-wrap" style="display:none">
+    <label>Start from template <span style="font-weight:400;color:var(--text3);font-size:.76rem">(optional)</span></label>
+    <select id="mj-template" onchange="onTemplatePicked(this.value)">
+      <option value="">— None (blank job) —</option>
+    </select>
+    <div id="mj-template-hint" style="font-size:.74rem;color:var(--text3);margin-top:.25rem;min-height:1em"></div>
+  </div>
   <div class="fg"><label>Production Title *</label><input id="mj-name" type="text" placeholder="e.g. Nike Campaign 2025" autocomplete="off"></div>
   <div class="fg"><label>Production Co.</label><input id="mj-co" type="text" list="company-datalist" autocomplete="off" placeholder="Start typing to autocomplete"></div>
   <div class="fg"><label>Notes / Brief</label><textarea id="mj-notes" rows="2" placeholder="Client contact, shoot brief, special requirements..."></textarea></div>
   <div class="modal-foot">
     <button class="btn btn-ghost" onclick="closeModal('m-new-job')">Cancel</button>
     <button class="btn btn-accent" onclick="createJob()">Create Job</button>
+  </div>
+</div></div>
+
+<!-- SAVE AS TEMPLATE MODAL -->
+<div class="overlay" id="m-save-template" style="display:none"><div class="modal">
+  <div class="modal-title">Save Job as Template</div>
+  <div class="fg"><label>Template Name *</label><input id="st-name" type="text" placeholder="e.g. Standard Commercial Shoot" autocomplete="off"></div>
+  <div class="fg"><label>Description <span style="font-weight:400;color:var(--text3);font-size:.76rem">(optional)</span></label><textarea id="st-description" rows="2" placeholder="Notes about when to use this template"></textarea></div>
+  <div id="st-summary" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.55rem .75rem;font-size:.8rem;color:var(--text3);margin-bottom:.6rem"></div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal('m-save-template')">Cancel</button>
+    <button class="btn btn-accent" onclick="saveJobAsTemplate()">Save Template</button>
+  </div>
+</div></div>
+
+<!-- TEMPLATES MANAGER MODAL -->
+<div class="overlay" id="m-templates-mgr" style="display:none"><div class="modal" style="max-width:640px">
+  <div class="modal-title">Job Templates</div>
+  <div id="tm-list" style="max-height:60vh;overflow-y:auto"></div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal('m-templates-mgr')">Close</button>
   </div>
 </div></div>
 
@@ -3435,10 +3463,10 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.93';
+const GRIP_VERSION = '1.0.94';
 const GRIP_BUILD_DATE = '2026-04-22';
 
-let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], borrowRequests:[], borrowRequestsError:null };
+let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities
 let jobContactsCache = {}; // job_id -> [{...contact+role}]
 let currentUser = null; // {id,username,role}
@@ -3494,12 +3522,13 @@ async function loadAll() {
   showLoading(true);
   try {
     const isAdmin = currentUser?.role==='admin';
-    const [jobs, inventory, log, contacts, companies, borrowReqs, users] = await Promise.all([
+    const [jobs, inventory, log, contacts, companies, templates, borrowReqs, users] = await Promise.all([
       apiGet('jobs'),
       apiGet('inventory'),
       apiGet('log'),
       apiGet('contacts'),
       apiGet('production_companies'),
+      apiGet('job_templates'),
       isAdmin ? apiGet('borrow/requests') : Promise.resolve([]),
       isAdmin ? apiGet('users') : Promise.resolve([]),
     ]);
@@ -3508,6 +3537,7 @@ async function loadAll() {
     S.log       = (log || []).map(r => ({ t: r.log_time, html: r.html, type: r.type }));
     S.contacts  = contacts  || [];
     S.companies = companies || [];
+    S.jobTemplates = templates || [];
     if(isAdmin && users) S.users = users;
     await loadSettings();
     applySettingsToUI();
@@ -3821,9 +3851,49 @@ function refreshCompanyDatalist() {
     .map(c => `<option value="${c.replace(/"/g,'&quot;')}">`).join('');
 }
 
+// ── Tracks the template selected when creating a new job (null = blank) ──
+let pendingNewJobTemplateId = null;
+
 function openNewJobModal() {
+  pendingNewJobTemplateId = null;
   refreshCompanyDatalist();
+  // Populate template picker (only show if any templates exist)
+  const wrap = document.getElementById('mj-template-wrap');
+  const sel  = document.getElementById('mj-template');
+  const hint = document.getElementById('mj-template-hint');
+  const templates = (S.jobTemplates||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(templates.length && sel && wrap){
+    const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    sel.innerHTML = '<option value="">— None (blank job) —</option>'
+      + templates.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+    sel.value = '';
+    if(hint) hint.textContent = '';
+    wrap.style.display = '';
+  } else if(wrap) {
+    wrap.style.display = 'none';
+  }
   openModal('m-new-job');
+}
+
+function onTemplatePicked(tid) {
+  pendingNewJobTemplateId = tid || null;
+  const t = (S.jobTemplates||[]).find(x => x.id === tid);
+  const hint = document.getElementById('mj-template-hint');
+  if(!t){
+    if(hint) hint.textContent = '';
+    return;
+  }
+  // Pre-fill company if template has one and field is empty
+  const coInput = document.getElementById('mj-co');
+  if(coInput && !coInput.value.trim() && t.co) coInput.value = t.co;
+  // Show summary hint
+  if(hint){
+    const gearCount = Array.isArray(t.gear) ? t.gear.length : 0;
+    const parts = [];
+    if(gearCount) parts.push(`${gearCount} gear item${gearCount!==1?'s':''}`);
+    if(t.description) parts.push(t.description);
+    hint.textContent = parts.join(' · ') || 'Empty template';
+  }
 }
 
 async function createJob() {
@@ -3835,10 +3905,39 @@ async function createJob() {
     notes:    document.getElementById('mj-notes').value.trim(),
   });
   if (!r?.id) return;
+
+  // If a template was selected, add a Day 1 and populate its gear
+  const templateId = pendingNewJobTemplateId;
+  const template = templateId ? (S.jobTemplates||[]).find(t => t.id === templateId) : null;
+  if(template && Array.isArray(template.gear) && template.gear.length){
+    // Create Day 1
+    const dr = await apiPost('days', { job_id: r.id, label: 'Day 1', date: '', location: '' });
+    if(dr?.id){
+      // Add each gear item
+      for(const g of template.gear){
+        await apiPost('gear', {
+          day_id:    dr.id,
+          name:      g.name || 'Untitled',
+          cat:       g.cat || 'Other',
+          asset_id:  g.assetId || '',
+          qty:       g.qty || 1,
+          value:     g.value || 0,
+          notes:     g.notes || '',
+          status:    'in',
+          condition: g.condition || 'Good',
+        });
+      }
+    }
+    await logEntry(`Created job <strong>${name}</strong> from template <strong>${template.name}</strong>`,'add');
+  } else {
+    await logEntry(`Created job <strong>${name}</strong>`,'add');
+  }
+
   closeModal('m-new-job');
   ['mj-name','mj-co','mj-notes'].forEach(id=>document.getElementById(id).value='');
+  const tEl = document.getElementById('mj-template'); if(tEl) tEl.value = '';
+  pendingNewJobTemplateId = null;
   activeJobId = r.id; activeDayId = null; selectedIds.clear();
-  await logEntry(`Created job <strong>${name}</strong>`,'add');
   await loadAll();
 }
 async function selectJob(id) {
@@ -4909,6 +5008,9 @@ function renderMain(){
             </button>
             <button class="jph-btn jph-btn-grouped" onclick="openEditJob('${j.id}',{stopPropagation:()=>{}})" title="Edit job details">
               <span class="jph-btn-icon">✎</span> Edit
+            </button>
+            <button class="jph-btn jph-btn-grouped" onclick="openSaveJobAsTemplate()" title="Save this job's gear as a reusable template">
+              <span class="jph-btn-icon">📋</span> Save Template
             </button>
           </div>
           <button class="jph-btn" onclick="toggleArchiveJob('${j.id}',event)" title="${j.archived?'Restore job':'Archive job'}">
@@ -7056,6 +7158,139 @@ async function deleteCompany(id) {
 }
 
 // ══════════════════════════════════════════════════════════
+//  JOB TEMPLATES  — reusable gear-list templates
+// ══════════════════════════════════════════════════════════
+
+// Dedupe gear across all days of a job into a flat list for template storage
+function gatherJobGearForTemplate(job) {
+  const map = new Map(); // key: `${name}|${cat}|${assetId}`
+  job.days.forEach(d => {
+    d.gear.forEach(g => {
+      const key = `${g.name}|${g.cat}|${g.assetId||''}`;
+      const existing = map.get(key);
+      if(existing){
+        existing.qty = (existing.qty||1) + (g.qty||1);
+      } else {
+        map.set(key, {
+          name: g.name || 'Untitled',
+          cat:  g.cat || 'Other',
+          assetId: g.assetId || '',
+          qty:  g.qty || 1,
+          value: g.value || 0,
+          notes: g.notes || '',
+          condition: g.condition || 'Good',
+        });
+      }
+    });
+  });
+  return [...map.values()];
+}
+
+function openSaveJobAsTemplate() {
+  const j = activeJob();
+  if(!j){ toast('No active job.','error'); return; }
+  const gear = gatherJobGearForTemplate(j);
+  document.getElementById('st-name').value = j.name + ' Template';
+  document.getElementById('st-description').value = '';
+  const count = gear.length;
+  const totalQty = gear.reduce((s,g)=>s+(g.qty||1),0);
+  document.getElementById('st-summary').textContent =
+    count
+      ? `Will save ${count} unique item${count!==1?'s':''} (${totalQty} total units)${j.co?` · Co: ${j.co}`:''}`
+      : `This job has no gear yet — the template will be empty.`;
+  openModal('m-save-template');
+  setTimeout(()=>document.getElementById('st-name')?.select(), 50);
+}
+
+async function saveJobAsTemplate() {
+  const name = document.getElementById('st-name').value.trim();
+  if(!name){ toast('Template name is required.'); return; }
+  const description = document.getElementById('st-description').value.trim();
+  const j = activeJob();
+  if(!j){ toast('No active job.','error'); return; }
+  const gear = gatherJobGearForTemplate(j);
+  const payload = {
+    name,
+    description,
+    co: j.co || '',
+    notes: j.notes || '',
+    gear,
+  };
+  const r = await apiPost('job_templates', payload);
+  if(!r?.id){
+    toast(r?.error || 'Failed to save template.', 'error');
+    return;
+  }
+  S.jobTemplates.push({id: r.id, ...payload});
+  closeModal('m-save-template');
+  toast(`Template "${name}" saved.`,'success');
+}
+
+function openTemplatesManager() {
+  renderTemplatesManager();
+  openModal('m-templates-mgr');
+}
+
+function renderTemplatesManager() {
+  const el = document.getElementById('tm-list');
+  if(!el) return;
+  const templates = (S.jobTemplates||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  if(!templates.length){
+    el.innerHTML = `<div class="dir-empty">
+      <span class="dir-empty-icon">📋</span>
+      No job templates yet.
+      <div class="dir-empty-hint">Open any job and use the "Save as Template" button to create one.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = templates.map(t => {
+    const gearCount = Array.isArray(t.gear) ? t.gear.length : 0;
+    const totalQty = Array.isArray(t.gear) ? t.gear.reduce((s,g)=>s+(g.qty||1),0) : 0;
+    const chips = [];
+    if(gearCount) chips.push(`<span class="cc-chip"><span class="cc-chip-icon">📦</span><span class="cc-chip-text">${gearCount} item${gearCount!==1?'s':''} · ${totalQty} units</span></span>`);
+    if(t.co) chips.push(`<span class="cc-chip"><span class="cc-chip-icon">🏢</span><span class="cc-chip-text">${esc(t.co)}</span></span>`);
+    return `<div class="contact-card" style="margin-bottom:.5rem">
+      <div class="cc-avatar cc-avatar-company">📋</div>
+      <div class="cc-info">
+        <div class="cc-header">
+          <div class="cc-name">${esc(t.name)}</div>
+          ${t.description?`<div class="cc-role" style="color:var(--text3);font-style:italic">${esc(t.description)}</div>`:''}
+        </div>
+        ${chips.length?`<div class="cc-chips">${chips.join('')}</div>`:''}
+      </div>
+      <div class="cc-actions">
+        <button class="btn btn-ghost btn-xs" onclick="renameTemplate('${t.id}')" title="Rename">✎</button>
+        <button class="btn btn-ghost btn-xs" onclick="deleteTemplate('${t.id}')" title="Delete" style="color:var(--red)">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renameTemplate(id) {
+  const t = S.jobTemplates.find(x=>x.id===id); if(!t) return;
+  const newName = prompt('Rename template:', t.name);
+  if(!newName || newName.trim() === t.name) return;
+  const trimmed = newName.trim();
+  const payload = {name: trimmed, description: t.description||'', co: t.co||'', notes: t.notes||'', gear: t.gear||[]};
+  const r = await apiPut(`job_templates/${id}`, payload);
+  if(!r?.ok){ toast(r?.error || 'Failed to rename.', 'error'); return; }
+  t.name = trimmed;
+  toast('Template renamed.','success');
+  renderTemplatesManager();
+}
+
+async function deleteTemplate(id) {
+  const t = S.jobTemplates.find(x=>x.id===id); if(!t) return;
+  if(!confirm(`Delete template "${t.name}"? This won't affect any jobs you've already created from it.`)) return;
+  const r = await apiDelete(`job_templates/${id}`);
+  if(!r?.ok){ toast('Failed to delete.', 'error'); return; }
+  S.jobTemplates = S.jobTemplates.filter(x=>x.id!==id);
+  toast('Template deleted.','success');
+  renderTemplatesManager();
+}
+
+// ══════════════════════════════════════════════════════════
 //  DIRECTORY VIEW  — unified People + Companies with sub-tabs
 // ══════════════════════════════════════════════════════════
 
@@ -8015,6 +8250,20 @@ async function renderSettingsView() {
         <button class="btn btn-ghost btn-xs" onclick="addNewCategory()">＋ Add Category</button>
       </div>
       <div id="set-cat-list"></div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-head">
+        <div class="set-group-title">
+          <span class="set-group-icon">📋</span>
+          Job Templates
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="openTemplatesManager()">Manage Templates</button>
+      </div>
+      <div style="font-size:.84rem;color:var(--text3);line-height:1.5">
+        Save any job's gear list as a reusable template, then use it to scaffold a new job in one click.
+        ${S.jobTemplates.length ? `You currently have <strong style="color:var(--text)">${S.jobTemplates.length}</strong> template${S.jobTemplates.length!==1?'s':''}.` : `No templates yet — use the "Save Template" button on any job to create one.`}
+      </div>
     </div>
 
     <div class="set-group danger">
