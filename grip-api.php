@@ -477,8 +477,56 @@ if($resource==='log'){
 //  MAIL  — POST /mail/send
 // ════════════════════════════════════════════════════════════
 if($resource==='mail'){
+    // GET /mail/diag — reports the state of mail config without
+    // leaking secrets. Admin-only. Useful when the frontend shows a
+    // "Send failed" error and you need to know which piece is missing.
+    if($method==='GET' && $id==='diag'){
+        require_role('admin');
+        $driver = defined('MAIL_DRIVER') ? MAIL_DRIVER : null;
+        $out = [
+            'driver'        => $driver,
+            'from_name'     => defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : null,
+            'from_addr'     => defined('MAIL_FROM_ADDR') ? MAIL_FROM_ADDR : null,
+            'phpmailer'     => file_exists(__DIR__.'/vendor/autoload.php') ? 'installed' : 'missing',
+            'php_mail_fn'   => function_exists('mail'),
+        ];
+        if($driver === 'smtp'){
+            $out['smtp_host']   = defined('SMTP_HOST') ? SMTP_HOST : null;
+            $out['smtp_port']   = defined('SMTP_PORT') ? SMTP_PORT : null;
+            $out['smtp_user']   = defined('SMTP_USER') ? SMTP_USER : null;
+            $out['smtp_pass']   = defined('SMTP_PASS') ? (SMTP_PASS ? '(set, '.strlen(SMTP_PASS).' chars)' : '(empty)') : null;
+            $out['smtp_secure'] = defined('SMTP_SECURE') ? SMTP_SECURE : null;
+        }
+        // Quick sanity summary of what's missing
+        $issues = [];
+        if(!$driver) $issues[] = 'MAIL_DRIVER not defined';
+        if(!defined('MAIL_FROM_ADDR') || !MAIL_FROM_ADDR) $issues[] = 'MAIL_FROM_ADDR missing or empty';
+        if($driver === 'smtp'){
+            foreach(['SMTP_HOST','SMTP_USER','SMTP_PASS','SMTP_PORT','SMTP_SECURE'] as $c)
+                if(!defined($c)) $issues[] = "$c not defined";
+            if($out['phpmailer']==='missing') $issues[] = 'PHPMailer not installed (run: composer require phpmailer/phpmailer)';
+        }
+        if($driver && $driver !== 'smtp' && !function_exists('mail'))
+            $issues[] = 'PHP mail() function not available on this server';
+        $out['issues'] = $issues;
+        $out['status'] = $issues ? 'bad' : 'ok';
+        json_out($out);
+    }
+
     if($method==='POST'&&$id==='send'){
         require_role('admin','operator');
+
+        // Guard against undefined constants — return a clear JSON error
+        // rather than letting PHP fatal on "Undefined constant MAIL_DRIVER".
+        foreach(['MAIL_DRIVER','MAIL_FROM_NAME','MAIL_FROM_ADDR'] as $_c){
+            if(!defined($_c)) err("Mail config incomplete: missing $_c in config.php", 500);
+        }
+        if(MAIL_DRIVER === 'smtp'){
+            foreach(['SMTP_HOST','SMTP_USER','SMTP_PASS','SMTP_PORT','SMTP_SECURE'] as $_c){
+                if(!defined($_c)) err("SMTP config incomplete: missing $_c in config.php", 500);
+            }
+        }
+
         $b         = body();
         $to        = trim($b['to']        ?? '');
         $sub       = trim($b['subject']   ?? '');
