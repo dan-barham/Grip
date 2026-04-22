@@ -535,31 +535,50 @@ if($resource==='mail'){
         $from_name = trim($b['from_name'] ?? MAIL_FROM_NAME);
         $from_addr = MAIL_FROM_ADDR;
 
-        // PDF attachment — generated server-side if job_id provided
+        // ── Attachment ────────────────────────────────────────
+        // Two supported paths, both optional:
+        //   (1) attach_html + attach_filename — frontend supplies a ready
+        //       HTML document to attach as text/html. Used by default
+        //       because it leverages the buildJobHTML cover-page layout
+        //       and works on any server with no extra dependencies.
+        //   (2) job_id with grip_job_pdf() available — server generates
+        //       a real PDF attachment. Kept for backwards compatibility
+        //       with setups that ship grip-pdf.php.
         $attach_data = null;
         $attach_name = null;
-        $attach_type = 'application/pdf';
-        $pdf_job_id  = trim($b['job_id'] ?? '');
-        if($pdf_job_id){
-            // Fetch job + days + gear and generate real PDF binary
-            $jst = db()->prepare('SELECT * FROM jobs WHERE id=?');
-            $jst->execute([$pdf_job_id]);
-            $pdf_job = $jst->fetch();
-            if($pdf_job){
-                $dst = db()->prepare('SELECT * FROM days WHERE job_id=? ORDER BY sort_order,id');
-                $dst->execute([$pdf_job_id]);
-                $pdf_days = $dst->fetchAll();
-                $gst = db()->prepare('SELECT * FROM gear WHERE day_id=? ORDER BY sort_order,id');
-                foreach($pdf_days as &$pd){
-                    $gst->execute([$pd['id']]);
-                    $pd['gear'] = $gst->fetchAll();
-                    $pd['date'] = $pd['shoot_date'] ?? '';
+        $attach_type = 'application/octet-stream';
+
+        $attach_html_in = $b['attach_html']     ?? '';
+        $attach_fname   = trim($b['attach_filename'] ?? '');
+        if($attach_html_in && $attach_fname){
+            $attach_data = $attach_html_in;
+            $attach_name = preg_replace('/[^a-zA-Z0-9_\-\. ]/','_',$attach_fname);
+            $attach_type = 'text/html; charset=UTF-8';
+        } else {
+            $pdf_job_id  = trim($b['job_id'] ?? '');
+            if($pdf_job_id && function_exists('grip_job_pdf')){
+                $jst = db()->prepare('SELECT * FROM jobs WHERE id=?');
+                $jst->execute([$pdf_job_id]);
+                $pdf_job = $jst->fetch();
+                if($pdf_job){
+                    $dst = db()->prepare('SELECT * FROM days WHERE job_id=? ORDER BY sort_order,id');
+                    $dst->execute([$pdf_job_id]);
+                    $pdf_days = $dst->fetchAll();
+                    $gst = db()->prepare('SELECT * FROM gear WHERE day_id=? ORDER BY sort_order,id');
+                    foreach($pdf_days as &$pd){
+                        $gst->execute([$pd['id']]);
+                        $pd['gear'] = $gst->fetchAll();
+                        $pd['date'] = $pd['shoot_date'] ?? '';
+                    }
+                    $pdf_job['days'] = $pdf_days;
+                    $attach_data = grip_job_pdf($pdf_job);
+                    $safe        = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $pdf_job['name'] ?? 'Equipment_List');
+                    $attach_name = $safe.'_Equipment_List.pdf';
+                    $attach_type = 'application/pdf';
                 }
-                $pdf_job['days'] = $pdf_days;
-                $attach_data = grip_job_pdf($pdf_job);
-                $safe        = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $pdf_job['name'] ?? 'Equipment_List');
-                $attach_name = $safe.'_Equipment_List.pdf';
             }
+            // If job_id was sent but grip_job_pdf() isn't available,
+            // we just skip the attachment rather than failing the send.
         }
 
         // CC / BCC — comma-separated lists
@@ -604,7 +623,7 @@ if($resource==='mail'){
                 $mail->Body    = $htm ?: nl2br(htmlspecialchars($txt));
                 $mail->AltBody = $txt;
                 if($attach_data && $attach_name)
-                    $mail->addStringAttachment($attach_data, $attach_name, 'base64', 'application/pdf');
+                    $mail->addStringAttachment($attach_data, $attach_name, 'base64', $attach_type);
                 $mail->send();
                 json_out(['ok'=>true,'driver'=>'smtp']);
             } catch(\Exception $e){
@@ -646,12 +665,12 @@ if($resource==='mail'){
              . "Content-Type: multipart/alternative; boundary=\"{$alt_boundary}\"\r\n\r\n"
              . $alt_part."\r\n";
 
-        // Attachment part
+        // Attachment part (dynamic content-type — text/html, application/pdf, etc.)
         if($attach_data && $attach_name){
             $attach_b64 = chunk_split(base64_encode($attach_data));
             $safe_name  = addslashes($attach_name);
             $msg .= "--{$outer_boundary}\r\n"
-                 .  "Content-Type: application/pdf; name=\"{$safe_name}\"\r\n"
+                 .  "Content-Type: {$attach_type}; name=\"{$safe_name}\"\r\n"
                  .  "Content-Transfer-Encoding: base64\r\n"
                  .  "Content-Disposition: attachment; filename=\"{$safe_name}\"\r\n\r\n"
                  .  $attach_b64."\r\n";
