@@ -3760,7 +3760,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.98';
+const GRIP_VERSION = '1.0.99';
 const GRIP_BUILD_DATE = '2026-04-22';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6462,33 +6462,80 @@ async function sendJobEmail() {
   if (!subject)  { toast('Subject is required.'); return; }
   if (!bodyText) { toast('Please write a message.'); return; }
 
-  // Build the HTML equipment list to send as the email body
-  const htmlBody = buildJobHTML(j, {forEmail:true});
+  // Compact summary for the email body — reliable across email clients
+  // (Gmail clips HTML around 102KB and can fall through to plain text;
+  //  the lightweight covering body keeps well under that threshold, and
+  //  the full cover-page layout lives in the HTML attachment instead).
+  const totalGear  = dedupeGear(j.days.flatMap(d=>d.gear||[]));
+  const totalVal   = totalGear.reduce((s,g)=>s+((+g.value||0)*(+g.qty||1)),0);
+  const totalUnits = totalGear.reduce((s,g)=>s+(+g.qty||1),0);
+  const daysCount  = j.days.filter(d=>d.gear?.length).length;
+  const datedDays  = j.days.filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const dateSpan   = datedDays.length
+    ? (datedDays[0].date===datedDays[datedDays.length-1].date
+        ? fmtDate(datedDays[0].date)
+        : fmtDate(datedDays[0].date)+' → '+fmtDate(datedDays[datedDays.length-1].date))
+    : 'Dates TBD';
+  const fmtValStr  = v => '$'+Number(v||0).toLocaleString('en-CA',{maximumFractionDigits:0});
 
   // Direct link to the server-rendered read-only version
   const onlineUrl = `${API}?r=jobs/${j.id}/html`;
 
-  // Footer to append before </body>
-  const emailFooter = `
-    <div style="margin-top:32px;padding-top:16px;border-top:2px solid #eee;font-family:Arial,sans-serif;font-size:9pt;color:#888;text-align:center;line-height:1.8">
-      <p style="margin:0 0 8px">
-        <a href="${onlineUrl}" style="color:#f0a020;font-weight:600;text-decoration:none">
-          &#128196; View this equipment list online
-        </a>
-        &nbsp;&nbsp;·&nbsp;&nbsp;
-        <span>Open the link and use <strong>File &rarr; Print</strong> to save as PDF</span>
-      </p>
-      <p style="margin:0;font-size:8pt;color:#bbb">This email was sent via GRIP Gear Tracker</p>
-    </div>`;
+  // Build a minimal, standards-clean HTML body. Inline styles only (no
+  // <style> blocks, no external CSS) so every email client renders it
+  // the same way, and no surprise sanitizer fallbacks.
+  const bodyTextHtml = bodyText
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
 
-  // Prepend the covering message and append the footer
-  const fullHtml = htmlBody
-    .replace('<div class="wrap">',
-      `<div class="wrap"><div style="font-family:Arial,sans-serif;font-size:10pt;color:#111;
-        padding:0 0 20px;border-bottom:1px solid #ddd;margin-bottom:24px;line-height:1.6">
-        ${bodyText.replace(/\n/g,'<br>')}
-      </div>`)
-    .replace('</body>', emailFooter + '</body>');
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${j.name}</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#111;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f4f4;padding:24px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background:#fff;border-radius:6px;overflow:hidden;border:1px solid #e5e5e5">
+        <tr><td style="background:#111;color:#fff;padding:18px 24px">
+          <div style="font-size:11pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#f0a020;margin-bottom:4px">GRIP Gear Tracker</div>
+          <div style="font-size:18pt;font-weight:700;line-height:1.15;letter-spacing:-.01em">${j.name}</div>
+          <div style="font-size:9pt;color:#bbb;margin-top:4px">Equipment List &amp; Insurance Schedule</div>
+        </td></tr>
+        <tr><td style="padding:22px 24px 6px;font-size:10.5pt;line-height:1.55;color:#222">
+          ${bodyTextHtml}
+        </td></tr>
+        <tr><td style="padding:14px 24px 0">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e5e5;border-radius:4px">
+            <tr>
+              <td style="padding:10px 14px;border-right:1px solid #eee;font-size:9pt">
+                <div style="color:#888;font-weight:600;text-transform:uppercase;font-size:7.5pt;letter-spacing:.06em">Dates</div>
+                <div style="color:#111;font-size:10pt;margin-top:3px">${dateSpan}</div>
+              </td>
+              <td style="padding:10px 14px;border-right:1px solid #eee;font-size:9pt">
+                <div style="color:#888;font-weight:600;text-transform:uppercase;font-size:7.5pt;letter-spacing:.06em">Days</div>
+                <div style="color:#111;font-size:10pt;margin-top:3px">${daysCount}</div>
+              </td>
+              <td style="padding:10px 14px;border-right:1px solid #eee;font-size:9pt">
+                <div style="color:#888;font-weight:600;text-transform:uppercase;font-size:7.5pt;letter-spacing:.06em">Units</div>
+                <div style="color:#111;font-size:10pt;margin-top:3px">${totalUnits}</div>
+              </td>
+              <td style="padding:10px 14px;font-size:9pt">
+                <div style="color:#888;font-weight:600;text-transform:uppercase;font-size:7.5pt;letter-spacing:.06em">Value</div>
+                <div style="color:#111;font-size:10pt;margin-top:3px;font-weight:600">${fmtValStr(totalVal)}</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:20px 24px;font-size:10pt;color:#555;line-height:1.55">
+          The full equipment list is attached as an HTML document. Open it in any browser to view, or use <strong style="color:#111">File → Print → Save as PDF</strong> for a hard copy.
+        </td></tr>
+        <tr><td align="center" style="padding:0 24px 24px">
+          <a href="${onlineUrl}" style="display:inline-block;background:#f0a020;color:#fff;padding:11px 22px;border-radius:4px;text-decoration:none;font-size:10.5pt;font-weight:600;letter-spacing:.01em">View Online &rarr;</a>
+        </td></tr>
+        <tr><td style="background:#fafafa;border-top:1px solid #eee;padding:14px 24px;font-size:8.5pt;color:#888;text-align:center;line-height:1.5">
+          Sent via <strong style="color:#555">GRIP Gear Tracker</strong>${j.co?` · ${j.co}`:''}${j.director?` · Dir: ${j.director}`:''}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
 
   // Disable button + show spinner
   sendBtn.disabled = true;

@@ -553,7 +553,7 @@ if($resource==='mail'){
         if($attach_html_in && $attach_fname){
             $attach_data = $attach_html_in;
             $attach_name = preg_replace('/[^a-zA-Z0-9_\-\. ]/','_',$attach_fname);
-            $attach_type = 'text/html; charset=UTF-8';
+            $attach_type = 'text/html';
         } else {
             $pdf_job_id  = trim($b['job_id'] ?? '');
             if($pdf_job_id && function_exists('grip_job_pdf')){
@@ -614,6 +614,8 @@ if($resource==='mail'){
                     ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
                     : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port       = (int)SMTP_PORT;
+                $mail->CharSet    = 'UTF-8';
+                $mail->Encoding   = 'base64';
                 $mail->setFrom($from_addr, $from_name);
                 $mail->addAddress($to);
                 foreach($cc_list  as $a) $mail->addCC($a);
