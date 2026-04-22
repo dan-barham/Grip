@@ -269,6 +269,203 @@ header{
 }
 .day-tab-add:hover{border-color:var(--accent);color:var(--accent);}
 
+/* Dashboard (Overview) tab — pinned leftmost, visually distinct from day tabs */
+.day-tab.overview{
+  background:var(--surface2);border-color:var(--border2);
+  color:var(--text2);font-weight:600;
+  display:inline-flex;align-items:center;gap:.35rem;
+  margin-right:.4rem;
+  position:sticky;left:0;z-index:2;
+}
+.day-tab.overview::after{
+  content:'';display:block;width:1px;height:14px;
+  background:var(--border2);margin-left:.4rem;
+}
+.day-tab.overview.active{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+}
+.day-tab.overview.active::after{background:rgba(255,255,255,.3);}
+.day-tab-ov-icon{font-size:.95rem;line-height:1;}
+
+/* Dashboard view container (replaces stats-bar + gear content when active) */
+.dash-scroll{
+  flex:1;overflow:auto;padding:1rem 1.25rem 2rem;
+  display:flex;flex-direction:column;gap:1rem;
+}
+.dash-grid{display:grid;gap:1rem;}
+.dash-grid-2{grid-template-columns:1fr 1fr;}
+.dash-grid-3{grid-template-columns:2fr 1fr;}
+@media(max-width:900px){.dash-grid-2,.dash-grid-3{grid-template-columns:1fr;}}
+
+/* Card shell — reused across dashboard sections */
+.dash-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:1rem 1.1rem;
+}
+.dash-card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+  margin-bottom:.75rem;
+}
+.dash-card-title{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.95rem;font-weight:600;color:var(--text);
+}
+.dash-card-icon{font-size:1rem;line-height:1;opacity:.85;}
+.dash-card-count{
+  font-size:.72rem;font-family:var(--mono);
+  background:var(--surface2);color:var(--text2);
+  padding:.14rem .45rem;border-radius:10px;border:1px solid var(--border);
+}
+.dash-card-sub{font-size:.78rem;color:var(--text3);font-weight:400;margin-top:.15rem;}
+
+/* Summary strip — top overview stats */
+.dash-sum-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.65rem;
+}
+.dash-sum-cell{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:.65rem .8rem;
+}
+.dash-sum-label{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+.dash-sum-value{font-size:1.35rem;font-weight:700;color:var(--text);font-family:var(--mono);margin-top:.15rem;line-height:1.1;}
+.dash-sum-sub{font-size:.72rem;color:var(--text3);margin-top:.15rem;}
+.dash-sum-value.pos{color:var(--green);}
+.dash-sum-value.warn{color:var(--amber);}
+.dash-sum-value.alert{color:var(--red);}
+
+/* Timeline of days */
+.dash-timeline{display:flex;flex-direction:column;gap:.45rem;}
+.dash-day-row{
+  display:grid;grid-template-columns:56px 1fr auto;gap:.85rem;align-items:center;
+  padding:.6rem .75rem;border:1px solid var(--border);border-radius:8px;
+  background:var(--surface2);cursor:pointer;transition:all .1s;
+}
+.dash-day-row:hover{border-color:var(--accent);transform:translateX(2px);}
+.dash-day-row.is-today{border-color:var(--amber);background:rgba(245,158,11,.05);}
+.dash-day-row.is-past{opacity:.78;}
+.dash-day-row.is-overdue{border-color:var(--red);background:rgba(224,72,72,.05);}
+.dash-day-box{
+  width:56px;border-radius:6px;padding:.3rem 0;text-align:center;
+  background:var(--surface);border:1px solid var(--border);
+}
+.dash-day-box-mo{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.05em;}
+.dash-day-box-d{font-size:1.1rem;font-weight:700;color:var(--text);line-height:1;margin-top:.1rem;}
+.dash-day-row.is-today .dash-day-box{background:var(--amber);border-color:var(--amber);}
+.dash-day-row.is-today .dash-day-box-mo,
+.dash-day-row.is-today .dash-day-box-d{color:#fff;}
+.dash-day-row.is-overdue .dash-day-box{background:var(--red);border-color:var(--red);}
+.dash-day-row.is-overdue .dash-day-box-mo,
+.dash-day-row.is-overdue .dash-day-box-d{color:#fff;}
+
+.dash-day-main{min-width:0;}
+.dash-day-label{font-size:.92rem;font-weight:600;color:var(--text);}
+.dash-day-meta{font-size:.76rem;color:var(--text3);display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.15rem;}
+.dash-day-meta .sep{color:var(--border2);}
+
+/* In/Out bar — shows status breakdown for each day */
+.dash-bar{
+  height:5px;border-radius:3px;background:var(--surface);overflow:hidden;
+  display:flex;margin-top:.35rem;
+}
+.dash-bar-seg{height:100%;}
+.dash-bar-in{background:var(--green);}
+.dash-bar-out{background:var(--red);}
+.dash-bar-dmg{background:var(--amber);}
+
+.dash-day-stats{
+  display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;
+  font-family:var(--mono);font-size:.8rem;
+}
+.dash-day-stats-qty{color:var(--text);font-weight:600;}
+.dash-day-stats-val{color:var(--text3);font-size:.72rem;}
+.dash-day-stats-badge{
+  font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:10px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.dash-day-stats-badge.today{background:var(--amber);color:#fff;}
+.dash-day-stats-badge.overdue{background:var(--red);color:#fff;}
+.dash-day-stats-badge.upcoming{background:var(--surface);color:var(--text3);border:1px solid var(--border);}
+
+/* Gear master list — all items used across the job */
+.dash-gear-list{display:flex;flex-direction:column;gap:.3rem;}
+.dash-gear-row{
+  display:grid;grid-template-columns:1fr auto auto;gap:.65rem;align-items:center;
+  padding:.45rem .65rem;border-radius:6px;
+  transition:background .1s;
+}
+.dash-gear-row:hover{background:var(--surface2);}
+.dash-gear-row + .dash-gear-row{border-top:1px solid var(--border);}
+.dash-gear-name{font-size:.88rem;font-weight:500;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dash-gear-cat{font-size:.68rem;color:var(--text3);margin-top:.1rem;}
+.dash-gear-qty{font-family:var(--mono);font-size:.82rem;font-weight:600;color:var(--text);}
+.dash-gear-days{display:flex;gap:.2rem;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
+.dash-gear-day-chip{
+  font-size:.65rem;font-family:var(--mono);
+  padding:.1rem .4rem;border-radius:8px;
+  background:var(--surface2);color:var(--text3);border:1px solid var(--border);
+  cursor:pointer;transition:all .1s;
+}
+.dash-gear-day-chip:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.dash-gear-sort{display:flex;gap:.3rem;}
+.dash-gear-sort-btn{
+  background:var(--surface2);border:1px solid var(--border);border-radius:5px;
+  color:var(--text2);font-size:.74rem;padding:.2rem .55rem;cursor:pointer;
+  transition:all .1s;
+}
+.dash-gear-sort-btn:hover{color:var(--text);border-color:var(--border2);}
+.dash-gear-sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* Damage incidents */
+.dash-damage-row{
+  display:grid;grid-template-columns:auto 1fr auto;gap:.65rem;align-items:center;
+  padding:.55rem .7rem;border:1px solid rgba(224,72,72,.25);
+  background:rgba(224,72,72,.06);border-radius:7px;
+}
+.dash-damage-row + .dash-damage-row{margin-top:.35rem;}
+.dash-damage-icon{font-size:1.1rem;}
+.dash-damage-name{font-size:.88rem;font-weight:600;color:var(--text);}
+.dash-damage-meta{font-size:.74rem;color:var(--text3);margin-top:.1rem;}
+.dash-damage-day{
+  font-size:.72rem;font-family:var(--mono);color:var(--red);font-weight:600;
+  padding:.15rem .5rem;border-radius:8px;
+  background:rgba(224,72,72,.12);border:1px solid rgba(224,72,72,.3);
+  cursor:pointer;
+}
+.dash-damage-day:hover{background:var(--red);color:#fff;}
+
+/* Activity timeline — per-job filtered log */
+.dash-activity-group{margin-bottom:.85rem;}
+.dash-activity-date{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text3);padding:.3rem 0;
+  border-bottom:1px solid var(--border);margin-bottom:.35rem;
+}
+.dash-activity-entry{
+  display:grid;grid-template-columns:60px 1fr;gap:.65rem;align-items:baseline;
+  padding:.3rem .2rem;font-size:.82rem;
+}
+.dash-activity-entry:hover{background:var(--surface2);border-radius:4px;}
+.dash-activity-time{font-family:var(--mono);font-size:.72rem;color:var(--text3);}
+.dash-activity-html{color:var(--text2);min-width:0;overflow-wrap:break-word;}
+
+/* Empty state — reusable */
+.dash-empty{
+  text-align:center;padding:1.5rem .5rem;color:var(--text3);
+  font-size:.88rem;
+}
+.dash-empty-icon{font-size:2rem;opacity:.5;margin-bottom:.3rem;}
+.dash-empty-celebrate{color:var(--green);}
+
+/* Dashboard-specific mobile tweaks */
+@media(max-width:700px){
+  .dash-scroll{padding:.75rem;}
+  .dash-card{padding:.75rem .85rem;}
+  .dash-sum-grid{grid-template-columns:repeat(2,1fr);}
+  .dash-day-row{grid-template-columns:48px 1fr;gap:.6rem;}
+  .dash-day-stats{grid-column:1 / -1;flex-direction:row;justify-content:space-between;align-items:center;margin-top:.3rem;}
+  .dash-gear-days{max-width:100%;}
+}
+
 /* Redesigned controls bar */
 .gear-controls{
   display:flex;align-items:center;gap:.5rem;
@@ -3463,7 +3660,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.0.94';
+const GRIP_VERSION = '1.0.95';
 const GRIP_BUILD_DATE = '2026-04-22';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -3472,6 +3669,7 @@ let jobContactsCache = {}; // job_id -> [{...contact+role}]
 let currentUser = null; // {id,username,role}
 let archivedHidden = true; // collapse archived section by default
 let activeJobId=null, activeDayId=null, activeView='jobs';
+let dashboardMode=false; // when true, show Job Dashboard (overview) instead of day view
 let gearFilter='all', invCatFilter='All';
 let selectedIds=new Set(), editingGearId=null, editingInvId=null;
 let invPickerSelected=new Set(), invPickerQtys={};
@@ -3534,7 +3732,7 @@ async function loadAll() {
     ]);
     S.jobs      = (jobs||[]).map(j=>({...j,archived:!!(j.archived&&j.archived!=='0')}));
     S.inventory = inventory || [];
-    S.log       = (log || []).map(r => ({ t: r.log_time, html: r.html, type: r.type }));
+    S.log       = (log || []).map(r => ({ t: r.log_time, html: r.html, type: r.type, created_at: r.created_at }));
     S.contacts  = contacts  || [];
     S.companies = companies || [];
     S.jobTemplates = templates || [];
@@ -3643,7 +3841,8 @@ tick(); setInterval(tick,1000);
 // ── Activity Log ─────────────────────────────────────────
 async function logEntry(html, type) {
   const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  S.log.unshift({t, html, type});
+  const created_at = new Date().toISOString().slice(0,19).replace('T',' ');
+  S.log.unshift({t, html, type, created_at});
   if (S.log.length > 200) S.log.pop();
   await apiPost('log', {t, html, type});
   renderLog();
@@ -3942,6 +4141,7 @@ async function createJob() {
 }
 async function selectJob(id) {
   activeJobId=id;
+  dashboardMode=false;
   // Auto-select the first day (sorted by date, undated last)
   const j=S.jobs.find(j=>j.id===id);
   if(j&&j.days.length){
@@ -4177,10 +4377,13 @@ async function createDay() {
   await loadAll();
 }
 function selectDay(id){
-  activeDayId=id;selectedIds.clear();closeAllDrawers();renderAll();
+  activeDayId=id;dashboardMode=false;selectedIds.clear();closeAllDrawers();renderAll();
   // Auto-fetch weather if day has date + location
   const d=activeDay();
   if(d&&d.date&&d.location){setTimeout(fetchWeather,300);}
+}
+function showJobDashboard(){
+  dashboardMode=true;selectedIds.clear();closeAllDrawers();renderAll();
 }
 async function deleteDay(id, e) {
   e.stopPropagation();
@@ -4942,12 +5145,16 @@ function renderMain(){
   const dayTabsHtml = sortedDays.map(dd=>{
     const outN=dd.gear.filter(g=>g.status==='out').length;
     const overdue=dd.date&&dd.date<today&&outN>0;
-    const active=dd.id===activeDayId;
+    const active=dd.id===activeDayId && !dashboardMode;
     return `<button class="day-tab ${active?'active':''} ${overdue?'overdue':''}"
       onclick="selectDay('${dd.id}')"
       title="${dd.date?fmtDate(dd.date):'No date'}${dd.location?' · '+dd.location:''}"
     >${dd.label}${outN?`<span class="day-tab-out">${outN} out</span>`:''}</button>`;
   }).join('');
+  const overviewTabHtml = `<button class="day-tab overview ${dashboardMode?'active':''}"
+    onclick="showJobDashboard()" title="Job overview and timeline">
+    <span class="day-tab-ov-icon">📊</span>Overview
+  </button>`;
 
   // ── Weather (shown if day has date+location) ──────────────
   const weatherHtml = d&&d.date&&d.location
@@ -5027,12 +5234,13 @@ function renderMain(){
 
       <!-- Day tabs -->
       <div class="day-tabs-row">
+        ${overviewTabHtml}
         ${dayTabsHtml}
         <button class="day-tab-add" onclick="openModal('m-new-day')" title="Add shoot day">＋ Day</button>
       </div>
     </div>
 
-    ${d ? `
+    ${dashboardMode ? renderJobDashboard(j) : (d ? `
     <!-- Stats bar (shown once day selected) -->
     <div class="stats-bar">
       <div class="stat"><div class="stat-n" id="s-items">0</div><div class="stat-l">Items</div></div>
@@ -5073,8 +5281,8 @@ function renderMain(){
       <button class="btn btn-ghost btn-sm" onclick="printDay()" title="Print this day">⎙</button>
       <button class="btn btn-ghost btn-sm" onclick="openCopyDay()" title="Copy gear to another day">⎘</button>
       <button class="btn btn-ghost btn-sm" onclick="openModal('m-shortcuts')" title="Keyboard shortcuts">?</button>
-    </div>` : `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:.95rem">Select a day above to view gear</div>`}
-    ${d ? `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    </div>` : `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:.95rem">Select a day above to view gear</div>`)}
+    ${!dashboardMode && d ? `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       <div class="gear-scroll">
         <div class="print-doc-header" id="print-doc-header">
           <span class="pdh-logo">GRIP · Gear Tracker</span>
@@ -5111,6 +5319,353 @@ function renderMain(){
 }
 
 function setGearFilter(f,el){gearFilter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderGearContent();}
+
+// ── Job Dashboard (Overview) ────────────────────────────────
+// Single-job bird's-eye view: summary, day timeline, gear master list,
+// damage incidents, and activity log filtered by job name.
+let dashGearSort = 'usage'; // 'usage' | 'name' | 'category'
+
+function setDashGearSort(s){
+  dashGearSort = s;
+  const host = document.getElementById('dash-gear-host');
+  const j = activeJob();
+  if(host && j) host.innerHTML = renderDashGearMasterList(j);
+}
+
+function renderJobDashboard(j){
+  const cur = (appSettings&&appSettings.currency_symbol)||'$';
+  const fmtVal = v => v>=10000 ? cur+(v/1000).toFixed(1)+'k' : cur+(v||0).toLocaleString();
+
+  // ── Compute summary stats across ALL days ───────────────
+  const allGear = j.days.flatMap(d => d.gear.map(g => ({...g, _dayId:d.id, _dayLabel:d.label, _dayDate:d.date})));
+  const totalUnits = allGear.reduce((s,g)=>s+(+g.qty||0),0);
+  const totalValue = allGear.reduce((s,g)=>s+((+g.value||0)*(+g.qty||0)),0);
+  const outItems   = allGear.filter(g=>g.status==='out').length;
+  const outUnits   = allGear.filter(g=>g.status==='out').reduce((s,g)=>s+(+g.qty||0),0);
+  const damaged    = allGear.filter(g=>g.condition==='Damaged');
+
+  // Unique items (dedup by name+assetId)
+  const uniqKeys = new Set(allGear.map(g => (g.name||'').toLowerCase()+'|'+(g.assetId||'')));
+  const uniqCount = uniqKeys.size;
+
+  // Date span
+  const datedDays = j.days.filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const span = datedDays.length
+    ? (datedDays[0].date===datedDays[datedDays.length-1].date
+        ? fmtDate(datedDays[0].date)
+        : fmtDate(datedDays[0].date)+' → '+fmtDate(datedDays[datedDays.length-1].date))
+    : '—';
+  const undated = j.days.filter(d=>!d.date).length;
+
+  return `
+    <div class="dash-scroll">
+
+      <!-- ── Summary Card ─────────────────────────────────── -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">
+            <span class="dash-card-icon">📋</span>
+            Job Summary
+            <div class="dash-card-sub" style="margin-top:0">${span}${undated?` · ${undated} undated day${undated!==1?'s':''}`:''}</div>
+          </div>
+        </div>
+        <div class="dash-sum-grid">
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">Shoot Days</div>
+            <div class="dash-sum-value">${j.days.length}</div>
+            <div class="dash-sum-sub">${datedDays.length} scheduled</div>
+          </div>
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">Unique Items</div>
+            <div class="dash-sum-value">${uniqCount}</div>
+            <div class="dash-sum-sub">across all days</div>
+          </div>
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">Total Units</div>
+            <div class="dash-sum-value">${totalUnits}</div>
+            <div class="dash-sum-sub">${allGear.length} line item${allGear.length!==1?'s':''}</div>
+          </div>
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">Total Value</div>
+            <div class="dash-sum-value">${fmtVal(totalValue)}</div>
+            <div class="dash-sum-sub">insured value</div>
+          </div>
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">On Truck</div>
+            <div class="dash-sum-value ${outItems?'alert':''}">${outItems}</div>
+            <div class="dash-sum-sub">${outUnits} unit${outUnits!==1?'s':''} out</div>
+          </div>
+          <div class="dash-sum-cell">
+            <div class="dash-sum-label">Damaged</div>
+            <div class="dash-sum-value ${damaged.length?'warn':'pos'}">${damaged.length}</div>
+            <div class="dash-sum-sub">${damaged.length?'needs attention':'all good'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Timeline + Damage (side by side on desktop) ─── -->
+      <div class="dash-grid dash-grid-3">
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <div class="dash-card-title">
+              <span class="dash-card-icon">📅</span>
+              Timeline
+              <span class="dash-card-count">${j.days.length}</span>
+            </div>
+          </div>
+          ${renderDashTimeline(j)}
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <div class="dash-card-title">
+              <span class="dash-card-icon">${damaged.length?'⚠️':'✅'}</span>
+              Damage Incidents
+              ${damaged.length?`<span class="dash-card-count" style="background:rgba(224,72,72,.12);color:var(--red);border-color:rgba(224,72,72,.3)">${damaged.length}</span>`:''}
+            </div>
+          </div>
+          ${renderDashDamage(damaged)}
+        </div>
+      </div>
+
+      <!-- ── Gear Master List ────────────────────────────── -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">
+            <span class="dash-card-icon">📦</span>
+            Gear Master List
+            <span class="dash-card-count">${uniqCount} unique</span>
+          </div>
+          <div class="dash-gear-sort">
+            <button class="dash-gear-sort-btn ${dashGearSort==='usage'?'active':''}" onclick="setDashGearSort('usage')">Most used</button>
+            <button class="dash-gear-sort-btn ${dashGearSort==='name'?'active':''}" onclick="setDashGearSort('name')">Name</button>
+            <button class="dash-gear-sort-btn ${dashGearSort==='category'?'active':''}" onclick="setDashGearSort('category')">Category</button>
+          </div>
+        </div>
+        <div id="dash-gear-host">${renderDashGearMasterList(j)}</div>
+      </div>
+
+      <!-- ── Activity Timeline ───────────────────────────── -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">
+            <span class="dash-card-icon">⏱️</span>
+            Activity
+            <div class="dash-card-sub" style="margin-top:0">Entries mentioning this job</div>
+          </div>
+        </div>
+        ${renderDashActivity(j)}
+      </div>
+
+      <div style="padding:0 .85rem">${renderViewFooter()}</div>
+    </div>
+  `;
+}
+
+function renderDashTimeline(j){
+  if(!j.days.length){
+    return `<div class="dash-empty">
+      <div class="dash-empty-icon">📅</div>
+      No shoot days yet. Use <strong>＋ Day</strong> above to add one.
+    </div>`;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  const cur = (appSettings&&appSettings.currency_symbol)||'$';
+  const fmtVal = v => v>=10000 ? cur+(v/1000).toFixed(1)+'k' : cur+(v||0).toLocaleString();
+
+  const sorted = [...j.days].sort((a,b)=>{
+    if(!a.date&&!b.date) return 0;
+    if(!a.date) return 1;
+    if(!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+
+  return `<div class="dash-timeline">${sorted.map(d=>{
+    const items = d.gear.length;
+    const units = d.gear.reduce((s,g)=>s+(+g.qty||0),0);
+    const value = d.gear.reduce((s,g)=>s+((+g.value||0)*(+g.qty||0)),0);
+    const inN = d.gear.filter(g=>g.status==='in').length;
+    const outN = d.gear.filter(g=>g.status==='out').length;
+    const dmgN = d.gear.filter(g=>g.condition==='Damaged').length;
+
+    const inPct = items ? (inN/items*100) : 0;
+    const outPct = items ? (outN/items*100) : 0;
+    const dmgPct = items ? (dmgN/items*100) : 0;
+
+    let stateCls='', badge='';
+    if(d.date){
+      if(d.date===today){ stateCls='is-today'; badge='<span class="dash-day-stats-badge today">Today</span>'; }
+      else if(d.date<today){
+        if(outN){ stateCls='is-overdue'; badge='<span class="dash-day-stats-badge overdue">Overdue</span>'; }
+        else { stateCls='is-past'; }
+      } else {
+        const days = Math.round((new Date(d.date)-new Date(today))/86400000);
+        badge = `<span class="dash-day-stats-badge upcoming">In ${days}d</span>`;
+      }
+    }
+
+    let mo='—', dnum='--';
+    if(d.date){
+      const dt = new Date(d.date+'T00:00:00');
+      mo = dt.toLocaleDateString([],{month:'short'});
+      dnum = dt.getDate();
+    }
+
+    return `<div class="dash-day-row ${stateCls}" onclick="selectDay('${d.id}')" title="Open ${d.label}">
+      <div class="dash-day-box">
+        <div class="dash-day-box-mo">${mo}</div>
+        <div class="dash-day-box-d">${dnum}</div>
+      </div>
+      <div class="dash-day-main">
+        <div class="dash-day-label">${d.label}</div>
+        <div class="dash-day-meta">
+          ${d.location?`<span>📍 ${d.location}</span><span class="sep">·</span>`:''}
+          <span>${items} item${items!==1?'s':''}</span>
+          <span class="sep">·</span>
+          <span>${units} unit${units!==1?'s':''}</span>
+          ${value?`<span class="sep">·</span><span>${fmtVal(value)}</span>`:''}
+        </div>
+        ${items?`<div class="dash-bar">
+          <div class="dash-bar-seg dash-bar-in" style="width:${inPct}%"></div>
+          <div class="dash-bar-seg dash-bar-out" style="width:${outPct}%"></div>
+          <div class="dash-bar-seg dash-bar-dmg" style="width:${dmgPct}%"></div>
+        </div>`:''}
+      </div>
+      <div class="dash-day-stats">
+        ${badge}
+        ${outN?`<div class="dash-day-stats-qty" style="color:var(--red)">${outN} out</div>`:''}
+        ${dmgN?`<div class="dash-day-stats-qty" style="color:var(--amber)">${dmgN} dmg</div>`:''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderDashGearMasterList(j){
+  // Dedup gear by name+assetId across all days; collect days each appears on
+  const map = new Map();
+  j.days.forEach(d=>{
+    d.gear.forEach(g=>{
+      const key = (g.name||'').toLowerCase()+'|'+(g.assetId||'');
+      if(!map.has(key)){
+        map.set(key, {
+          name: g.name||'(unnamed)',
+          cat: g.cat||'Other',
+          assetId: g.assetId||'',
+          totalQty: 0,
+          days: [] // [{id, label, qty}]
+        });
+      }
+      const row = map.get(key);
+      row.totalQty += (+g.qty||0);
+      row.days.push({id:d.id, label:d.label, qty:(+g.qty||0)});
+    });
+  });
+
+  let rows = [...map.values()];
+  if(!rows.length){
+    return `<div class="dash-empty">
+      <div class="dash-empty-icon">📦</div>
+      No gear added to any day yet.
+    </div>`;
+  }
+
+  // Sort
+  if(dashGearSort==='usage'){
+    rows.sort((a,b)=> b.days.length - a.days.length || b.totalQty - a.totalQty || a.name.localeCompare(b.name));
+  } else if(dashGearSort==='name'){
+    rows.sort((a,b)=> a.name.localeCompare(b.name));
+  } else if(dashGearSort==='category'){
+    rows.sort((a,b)=> (a.cat||'').localeCompare(b.cat||'') || a.name.localeCompare(b.name));
+  }
+
+  return `<div class="dash-gear-list">${rows.map(r=>`
+    <div class="dash-gear-row">
+      <div>
+        <div class="dash-gear-name" title="${r.name.replace(/"/g,'&quot;')}">${r.name}${r.assetId?` <span style="color:var(--text3);font-family:var(--mono);font-size:.72rem">[${r.assetId}]</span>`:''}</div>
+        <div class="dash-gear-cat">${r.cat}${r.days.length>1?` · on ${r.days.length} days`:''}</div>
+      </div>
+      <div class="dash-gear-qty">×${r.totalQty}</div>
+      <div class="dash-gear-days">${r.days.slice(0,8).map(dd=>`
+        <span class="dash-gear-day-chip" onclick="selectDay('${dd.id}')" title="Open ${dd.label}">${dd.label}${dd.qty>1?` ×${dd.qty}`:''}</span>
+      `).join('')}${r.days.length>8?`<span class="dash-gear-day-chip" style="cursor:default" title="${r.days.length-8} more">+${r.days.length-8}</span>`:''}</div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function renderDashDamage(damaged){
+  if(!damaged.length){
+    return `<div class="dash-empty dash-empty-celebrate">
+      <div class="dash-empty-icon">✨</div>
+      No damage reported. All gear in good shape.
+    </div>`;
+  }
+  return damaged.map(g=>`
+    <div class="dash-damage-row">
+      <div class="dash-damage-icon">⚠️</div>
+      <div>
+        <div class="dash-damage-name">${g.name||'(unnamed)'}${g.assetId?` <span style="color:var(--text3);font-family:var(--mono);font-size:.72rem;font-weight:400">[${g.assetId}]</span>`:''}</div>
+        <div class="dash-damage-meta">${g.cat||'Other'}${g.qty>1?` · ×${g.qty}`:''}${g.notes?` · "${g.notes.replace(/</g,'&lt;').slice(0,80)}"`:''}</div>
+      </div>
+      <span class="dash-damage-day" onclick="selectDay('${g._dayId}')" title="Open ${g._dayLabel}">${g._dayLabel}</span>
+    </div>
+  `).join('');
+}
+
+function renderDashActivity(j){
+  // Filter log entries whose HTML mentions the job name (wrapped in <strong>)
+  const needle = j.name;
+  if(!needle){
+    return `<div class="dash-empty">No activity yet.</div>`;
+  }
+  const matches = (S.log||[]).filter(e => e.html && e.html.includes(needle));
+  if(!matches.length){
+    return `<div class="dash-empty">
+      <div class="dash-empty-icon">⏱️</div>
+      No activity logged for this job yet.
+    </div>`;
+  }
+
+  // Group by date (from created_at if available, else "Today")
+  const groups = new Map();
+  matches.slice(0,60).forEach(e=>{
+    let dateKey = 'Today';
+    let dateLabel = 'Today';
+    if(e.created_at){
+      const dk = String(e.created_at).slice(0,10);
+      dateKey = dk;
+      const dt = new Date(dk+'T00:00:00');
+      const todayStr = new Date().toISOString().slice(0,10);
+      if(dk === todayStr) dateLabel = 'Today';
+      else {
+        const y = new Date(); y.setDate(y.getDate()-1);
+        dateLabel = (dk === y.toISOString().slice(0,10))
+          ? 'Yesterday'
+          : dt.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+      }
+    }
+    if(!groups.has(dateKey)) groups.set(dateKey, {label:dateLabel, entries:[]});
+    groups.get(dateKey).entries.push(e);
+  });
+
+  // Sort groups so "Today" is first, then most recent dates
+  const sortedKeys = [...groups.keys()].sort((a,b)=>{
+    if(a==='Today') return -1; if(b==='Today') return 1;
+    return b.localeCompare(a);
+  });
+
+  return sortedKeys.map(k=>{
+    const g = groups.get(k);
+    return `<div class="dash-activity-group">
+      <div class="dash-activity-date">${g.label}</div>
+      ${g.entries.map(e=>`
+        <div class="dash-activity-entry">
+          <span class="dash-activity-time">${e.t||''}</span>
+          <span class="dash-activity-html">${e.html}</span>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
 
 function printDay(){
   const d=activeDay();if(!d){toast('Select a shoot day to print.'); return;}
