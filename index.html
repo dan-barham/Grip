@@ -3986,7 +3986,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.17.0';
+const GRIP_VERSION = '1.17.1';
 const GRIP_BUILD_DATE = '2026-04-23';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5696,7 +5696,9 @@ function setGearFilter(f,el){gearFilter=f;document.querySelectorAll('.ftab').for
 
 const _scan = {
   stream: null,       // MediaStream from getUserMedia
-  detector: null,     // BarcodeDetector instance (or null)
+  detector: null,     // Native BarcodeDetector instance (or null)
+  zxReader: null,     // ZXing BrowserMultiFormatReader instance (or null)
+  backend: null,      // 'native' | 'zxing' | null — for debugging / status
   rafId: null,        // requestAnimationFrame handle for the scan loop
   lastCode: null,     // most recently successful code, for dedup
   lastCodeAt: 0,      // timestamp of last successful code
@@ -5706,7 +5708,7 @@ const _scan = {
 };
 
 async function openBarcodeScanner(){
-  // Requires an active day to toggle against — if not, open a picker prompt.
+  // Requires an active day to toggle against — if not, bail with a hint.
   const d = activeDay();
   if(!d){
     toast('Select a shoot day first to scan items in/out.');
@@ -5731,9 +5733,22 @@ async function openBarcodeScanner(){
     if(inp){ inp.value=''; inp.focus(); }
   }, 60);
 
+  // Camera + live decoding both require a secure context (HTTPS or
+  // localhost). On plain HTTP, the browser silently blocks the camera.
+  if(!window.isSecureContext){
+    setScanStatus('Camera requires HTTPS. Use the manual input below, or USB/Bluetooth scanner.', '');
+    return;
+  }
+
+  // Need getUserMedia
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setScanStatus('Camera API unavailable in this browser. Manual input still works.', '');
+    return;
+  }
+
   setScanStatus('Requesting camera access…', '');
 
-  // Try live camera scan. On any failure, the manual input still works.
+  // Try live camera.
   try {
     _scan.stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -5747,28 +5762,105 @@ async function openBarcodeScanner(){
     video.srcObject = _scan.stream;
     await video.play().catch(()=>{});
 
-    // BarcodeDetector is native in Chrome/Edge and iOS 17+ Safari.
-    // Fall back gracefully if missing — manual input still works.
-    if ('BarcodeDetector' in window) {
+    // Pick a decoder backend:
+    //   1. Native BarcodeDetector if present AND supports useful 1D formats
+    //      (macOS + Android Chrome/Edge, iOS Safari 17+).
+    //   2. ZXing-js via jsdelivr as lazy-loaded fallback everywhere else
+    //      (desktop Linux/Windows Chrome, all Firefox, older Safari).
+    //   3. Manual input + keyboard-wedge remain available regardless.
+    let started = false;
+    if('BarcodeDetector' in window){
       try {
         const formats = await window.BarcodeDetector.getSupportedFormats();
         const want = ['code_128','code_39','ean_13','ean_8','qr_code','itf','upc_a','upc_e'];
         const supported = want.filter(f => formats.includes(f));
-        _scan.detector = new window.BarcodeDetector({formats: supported.length?supported:undefined});
-        setScanStatus('Point the camera at a barcode', '');
-        scanLoop();
+        if(supported.length){
+          _scan.detector = new window.BarcodeDetector({formats: supported});
+          _scan.backend = 'native';
+          setScanStatus('Scanning… (native)', '');
+          scanLoop();
+          started = true;
+        }
       } catch(e){
         console.warn('BarcodeDetector init failed:', e);
-        _scan.detector = null;
-        setScanStatus('Camera active — live detection unavailable. Use the input below.', '');
       }
-    } else {
-      _scan.detector = null;
-      setScanStatus('Camera active — this browser has no native barcode detection. Type / scan the asset ID into the input below.', '');
+    }
+    if(!started){
+      // Fall back to ZXing
+      setScanStatus('Loading scanner engine…', '');
+      try {
+        await loadZXing();
+        startZXingScan();
+        _scan.backend = 'zxing';
+        setScanStatus('Scanning…', '');
+        started = true;
+      } catch(e){
+        console.warn('ZXing load failed:', e);
+        setScanStatus('Could not load scanner engine. Check your internet connection or use the manual input below.', '');
+      }
     }
   } catch(e){
     console.warn('camera access denied:', e);
-    setScanStatus('Camera unavailable — type / scan asset IDs into the input below.', '');
+    let msg = 'Camera unavailable — use the manual input below.';
+    if(e && e.name){
+      if(e.name==='NotAllowedError')      msg = 'Camera access denied. Check browser permissions for this site.';
+      else if(e.name==='NotFoundError')   msg = 'No camera found on this device. Use the manual input below.';
+      else if(e.name==='NotReadableError')msg = 'Camera is in use by another app. Close it and try again.';
+      else if(e.name==='OverconstrainedError') msg = 'Camera does not support the requested settings. Try again.';
+    }
+    setScanStatus(msg, '');
+  }
+}
+
+// ── ZXing lazy-loader + scan loop ─────────────────────────
+// Loaded on first use only, cached globally. Uses the maintained UMD
+// bundle from jsdelivr. If the CDN is unreachable (rare), the manual
+// input still works.
+let _zxingLoading = null;
+function loadZXing(){
+  if(window.ZXing) return Promise.resolve(window.ZXing);
+  if(_zxingLoading) return _zxingLoading;
+  _zxingLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    s.onload = () => {
+      if(window.ZXing) resolve(window.ZXing);
+      else reject(new Error('ZXing global not found after script load'));
+    };
+    s.onerror = () => reject(new Error('Failed to fetch ZXing from jsdelivr'));
+    document.head.appendChild(s);
+  });
+  return _zxingLoading;
+}
+
+function startZXingScan(){
+  if(!window.ZXing) return;
+  const ZX = window.ZXing;
+  try {
+    const hints = new Map();
+    // Prefer the barcode formats we actually print / expect
+    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
+      ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.CODE_39,
+      ZX.BarcodeFormat.EAN_13,   ZX.BarcodeFormat.EAN_8,
+      ZX.BarcodeFormat.UPC_A,    ZX.BarcodeFormat.UPC_E,
+      ZX.BarcodeFormat.ITF,      ZX.BarcodeFormat.QR_CODE,
+    ]);
+    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+    _scan.zxReader = new ZX.BrowserMultiFormatReader(hints, 200);
+    // decodeFromVideoElement returns a promise that resolves on the
+    // first successful decode. We use decodeFromVideoElementContinuously
+    // via the callback form to keep scanning.
+    const video = document.getElementById('scan-video');
+    _scan.zxReader.decodeFromVideoElement(video, (result, err) => {
+      if(result){
+        handleScannedCode(result.getText());
+      }
+      // Ignore decode errors — they just mean no barcode was visible
+      // in this frame.
+    });
+  } catch(e){
+    console.warn('ZXing start failed:', e);
+    setScanStatus('Scanner engine failed to start. Use the manual input.', '');
   }
 }
 
@@ -5777,6 +5869,10 @@ function closeBarcodeScanner(){
   ov.classList.remove('open');
   _scan.open = false;
   if(_scan.rafId){ cancelAnimationFrame(_scan.rafId); _scan.rafId=null; }
+  if(_scan.zxReader){
+    try { _scan.zxReader.reset(); } catch(e){}
+    _scan.zxReader = null;
+  }
   if(_scan.stream){
     _scan.stream.getTracks().forEach(t=>t.stop());
     _scan.stream = null;
@@ -5784,6 +5880,9 @@ function closeBarcodeScanner(){
   const video = document.getElementById('scan-video');
   if(video) video.srcObject = null;
   _scan.detector = null;
+  _scan.backend = null;
+  // Restore FAB visibility if appropriate (renderAll was suppressing it while open)
+  renderAll();
 }
 
 function scanLoop(){
@@ -5877,7 +5976,7 @@ async function processScan(code){
   }
 
   // 2. Not on this day yet — try master inventory
-  const invMatch = (S.inventory||[]).find(i => (i.asset_id||'').toUpperCase() === code);
+  const invMatch = (S.inventory||[]).find(i => (i.assetId||'').toUpperCase() === code);
   if(invMatch){
     // Auto-add to the day as "out" (user scanned it onto the truck)
     const gearRow = {
@@ -5885,7 +5984,7 @@ async function processScan(code){
       day_id: d.id,
       name: invMatch.name,
       cat: invMatch.cat || 'Other',
-      asset_id: invMatch.asset_id,
+      asset_id: invMatch.assetId,
       qty: 1,
       value: invMatch.value || 0,
       notes: '',
@@ -5897,6 +5996,7 @@ async function processScan(code){
       id: gearRow.id, name: gearRow.name, cat: gearRow.cat,
       assetId: gearRow.asset_id, qty: 1, value: gearRow.value,
       notes: '', status: 'out', condition: gearRow.condition,
+      inventoryId: invMatch.id,
     });
     renderGearContent();
     await apiPost('gear', gearRow);
@@ -5999,7 +6099,7 @@ function escHtml(s){
 // Asset ID set (so users can fill those in first).
 
 function openLabelPrint(){
-  const items = (S.inventory||[]).filter(i => (i.asset_id||'').trim());
+  const items = (S.inventory||[]).filter(i => (i.assetId||'').trim());
   if(!items.length){
     toast('No inventory items have Asset IDs yet. Add some first.');
     return;
@@ -6008,8 +6108,8 @@ function openLabelPrint(){
   const cells = items.map(i => `
     <div class="label-cell">
       <div class="label-name">${escHtml(i.name).slice(0,40)}</div>
-      <div class="label-barcode">${code128SVG(i.asset_id)}</div>
-      <div class="label-id">${escHtml(i.asset_id)}</div>
+      <div class="label-barcode">${code128SVG(i.assetId)}</div>
+      <div class="label-id">${escHtml(i.assetId)}</div>
     </div>`).join('');
   const html = `<!DOCTYPE html><html><head>
   <meta charset="utf-8"><title>GRIP Labels · ${items.length} item${items.length!==1?'s':''}</title>
