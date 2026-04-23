@@ -1490,29 +1490,55 @@ td.ta .btn+.btn{margin-left:.25rem;}
 @media(max-width:700px){.scan-fab{display:flex;}}
 .scan-fab.hidden{display:none !important;}
 
-/* ── LABEL PRINT PREVIEW ─────────────────────────────────── */
-.label-preview{
-  background:#fff;color:#000;padding:.5in;
-  max-width:8.5in;margin:0 auto;
+/* ── LABEL PRINT PICKER (modal) ─────────────────────────── */
+.lp-mode-row{
+  display:flex;gap:.5rem;margin-bottom:.9rem;
 }
-.label-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:.15in;
+.lp-mode{
+  flex:1;display:flex;align-items:center;gap:.5rem;
+  padding:.65rem .8rem;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface);cursor:pointer;transition:all .15s;
+  font-size:.9rem;color:var(--text2);
 }
-.label-cell{
-  border:1px dashed #ccc;padding:.2in .15in;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:1in;text-align:center;break-inside:avoid;
+.lp-mode:hover{ border-color:var(--border2); }
+.lp-mode.active{
+  border-color:var(--accent);background:var(--surface2);
+  color:var(--text);font-weight:500;
 }
-.label-name{font-size:9pt;font-weight:600;color:#111;margin-bottom:4px;line-height:1.2;}
-.label-barcode svg{width:100%;height:40px;}
-.label-id{font-family:'Courier New',monospace;font-size:10pt;font-weight:700;color:#000;margin-top:4px;letter-spacing:.02em;}
-@media print{
-  body > *{visibility:hidden;}
-  .label-preview,.label-preview *{visibility:visible;}
-  .label-preview{position:absolute;top:0;left:0;width:100%;padding:.3in;}
-  .label-cell{border-color:transparent;}
-  @page{margin:.3in;}
+.lp-mode input[type=radio]{ accent-color:var(--accent);margin:0; }
+.lp-n{
+  font-family:var(--mono);font-size:.75rem;color:var(--text3);
+  background:var(--surface2);padding:.1rem .45rem;border-radius:10px;
+  margin-left:auto;
 }
+.lp-mode.active .lp-n{ background:var(--accent);color:#fff; }
+
+.lp-cat-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:.4rem;margin-bottom:1rem;max-height:260px;overflow:auto;
+  padding:.3rem;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);
+}
+.lp-cat{
+  display:flex;align-items:center;gap:.5rem;
+  padding:.4rem .6rem;border-radius:4px;cursor:pointer;
+  font-size:.85rem;color:var(--text2);transition:background .1s;
+}
+.lp-cat:hover{ background:var(--surface); }
+.lp-cat.on{ color:var(--text);font-weight:500; }
+.lp-cat input[type=checkbox]{ accent-color:var(--accent);margin:0; }
+.lp-cat .cat-dot{ width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.lp-cat-name{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.lp-cat-n{
+  font-family:var(--mono);font-size:.72rem;color:var(--text3);
+  padding:.1rem .4rem;background:var(--surface);border-radius:8px;
+}
+
+.lp-summary{
+  padding:.6rem .8rem;background:var(--surface2);
+  border-radius:6px;font-size:.85rem;color:var(--text2);text-align:center;
+}
+.lp-summary strong{color:var(--accent);font-family:var(--mono);}
 
 
 /* ── JOB RAIL SECTIONS ── */
@@ -3585,6 +3611,22 @@ td.ta .btn+.btn{margin-left:.25rem;}
   </div>
 </div></div>
 
+<!-- ── LABEL PRINT ────────────────────────────────────────── -->
+<!-- Selection picker + two output paths (browser print, .lbx export)
+     for asset labels sized to Brother P-Touch 18mm tape.           -->
+<div class="overlay" id="m-label-print" style="display:none"><div class="modal" style="max-width:560px">
+  <div class="modal-title">Print Asset Labels</div>
+  <div style="font-size:.85rem;color:var(--text3);margin-bottom:1rem">
+    Sized for Brother P-Touch <strong>18mm</strong> TZ/TZe tape · 54mm label length
+  </div>
+  <div id="label-picker-body"></div>
+  <div class="modal-foot" style="margin-top:1.2rem;display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn btn-ghost" onclick="closeModal('m-label-print')">Cancel</button>
+    <button class="btn btn-ghost" id="lp-btn-export" onclick="generateLabelLbx()" title="Download .lbx file for Brother P-Touch Editor">⬇ Export .lbx</button>
+    <button class="btn btn-accent" id="lp-btn-print" onclick="generateLabelPrint()">🖨 Print Preview</button>
+  </div>
+</div></div>
+
 <!-- ── BARCODE SCANNER ─────────────────────────────────────── -->
 <!-- Full-screen camera preview. Scans asset-ID barcodes and toggles
      matching gear in/out on the active day. Manual-entry input
@@ -3986,7 +4028,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.17.1';
+const GRIP_VERSION = '1.18.0';
 const GRIP_BUILD_DATE = '2026-04-23';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6091,12 +6133,29 @@ function escHtml(s){
 
 
 // ════════════════════════════════════════════════════════════
-//  LABEL PRINTING — Code-128 barcodes for asset IDs
+//  LABEL PRINTING — Brother P-Touch (18mm tape) optimized
 // ════════════════════════════════════════════════════════════
-// Pure-SVG Code 128 encoder; no library. Opens a new window with a
-// 3-column grid of labels sized for standard Avery 5160-ish sheets
-// and triggers Print. Prints only inventory items that have an
-// Asset ID set (so users can fill those in first).
+// Produces labels sized for Brother 18mm TZ/TZe continuous tape:
+//   - one label per page, landscape, ~50mm long × 18mm tall
+//   - print area ~12mm tall (standard Brother margin inset)
+//   - Code 128 barcode on the left, item name + asset ID on the right
+// Two output paths:
+//   1. Browser print — opens a preview window, hits the system print
+//      dialog; user selects the P-Touch printer. Works with any
+//      browser/OS/driver that can see the P-Touch.
+//   2. .lbx export — generates a native Brother P-Touch Editor file
+//      (ZIP of label.xml + prop.xml) that opens directly in P-Touch
+//      Editor (Windows/Mac), iPrint&Label mobile app, or Pro Label
+//      Tool. Useful when the printer isn't reachable from the
+//      computer (e.g. printing from a tablet later).
+//
+// The filter modal lets the user pick a subset by category or use the
+// inventory search box's current filter.
+
+let _labelSelection = {
+  mode: 'all',     // 'all' | 'cat' | 'selected'
+  cats: new Set(), // when mode='cat'
+};
 
 function openLabelPrint(){
   const items = (S.inventory||[]).filter(i => (i.assetId||'').trim());
@@ -6104,57 +6163,492 @@ function openLabelPrint(){
     toast('No inventory items have Asset IDs yet. Add some first.');
     return;
   }
+  // Reset selection state each time
+  _labelSelection = {mode:'all', cats:new Set()};
+  renderLabelPicker();
+  openModal('m-label-print');
+}
+
+function renderLabelPicker(){
+  const host = document.getElementById('label-picker-body');
+  if(!host) return;
+  const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
+  const byCat = {};
+  all.forEach(i => { (byCat[i.cat||'Other'] = byCat[i.cat||'Other'] || []).push(i); });
+  const cats = Object.keys(byCat).sort();
+  const selectedCount = countLabelSelection().length;
+
+  host.innerHTML = `
+    <div class="lp-mode-row">
+      <label class="lp-mode ${_labelSelection.mode==='all'?'active':''}">
+        <input type="radio" name="lp-mode" value="all" ${_labelSelection.mode==='all'?'checked':''} onchange="setLabelMode('all')">
+        <span>All items with asset IDs <span class="lp-n">${all.length}</span></span>
+      </label>
+      <label class="lp-mode ${_labelSelection.mode==='cat'?'active':''}">
+        <input type="radio" name="lp-mode" value="cat" ${_labelSelection.mode==='cat'?'checked':''} onchange="setLabelMode('cat')">
+        <span>By category</span>
+      </label>
+    </div>
+    ${_labelSelection.mode==='cat'?`
+      <div class="lp-cat-grid">
+        ${cats.map(c=>{
+          const checked = _labelSelection.cats.has(c);
+          return `<label class="lp-cat ${checked?'on':''}">
+            <input type="checkbox" ${checked?'checked':''} onchange="toggleLabelCat('${c.replace(/'/g,"\\'")}')">
+            <span class="cat-dot cat-${c}"></span>
+            <span class="lp-cat-name">${escHtml(c)}</span>
+            <span class="lp-cat-n">${byCat[c].length}</span>
+          </label>`;
+        }).join('')}
+      </div>
+    `:''}
+    <div class="lp-summary">
+      <strong>${selectedCount}</strong> label${selectedCount!==1?'s':''} will be generated
+    </div>
+  `;
+  // Disable action buttons when nothing selected
+  const printBtn  = document.getElementById('lp-btn-print');
+  const exportBtn = document.getElementById('lp-btn-export');
+  if(printBtn)  printBtn.disabled  = selectedCount===0;
+  if(exportBtn) exportBtn.disabled = selectedCount===0;
+}
+
+function setLabelMode(m){
+  _labelSelection.mode = m;
+  // When switching into "cat" mode, pre-check all cats for convenience
+  if(m==='cat' && _labelSelection.cats.size===0){
+    const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
+    new Set(all.map(i=>i.cat||'Other')).forEach(c=>_labelSelection.cats.add(c));
+  }
+  renderLabelPicker();
+}
+
+function toggleLabelCat(c){
+  if(_labelSelection.cats.has(c)) _labelSelection.cats.delete(c);
+  else _labelSelection.cats.add(c);
+  renderLabelPicker();
+}
+
+function countLabelSelection(){
+  const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
+  if(_labelSelection.mode === 'all') return all;
+  if(_labelSelection.mode === 'cat')
+    return all.filter(i => _labelSelection.cats.has(i.cat||'Other'));
+  return all;
+}
+
+// ── Browser print path ───────────────────────────────────
+// One label per page, sized for 18mm tape. Landscape. Content:
+// barcode on the left, item name on top-right (2 lines max), asset
+// ID below it in monospace. Each label gets its own @page so the
+// P-Touch driver cuts between them correctly.
+function generateLabelPrint(){
+  const items = countLabelSelection();
+  if(!items.length) return;
   const owner = (appSettings&&appSettings.owner_name) || 'GRIP';
-  const cells = items.map(i => `
-    <div class="label-cell">
-      <div class="label-name">${escHtml(i.name).slice(0,40)}</div>
-      <div class="label-barcode">${code128SVG(i.assetId)}</div>
-      <div class="label-id">${escHtml(i.assetId)}</div>
-    </div>`).join('');
+  const today = new Date().toLocaleDateString();
+  const pages = items.map((i,idx) => `
+    <div class="pt-page" ${idx===items.length-1?'':'style="page-break-after:always"'}>
+      <div class="pt-barcode">${code128SVG(i.assetId, {height:24})}</div>
+      <div class="pt-text">
+        <div class="pt-name">${escHtml(i.name).slice(0,32)}</div>
+        <div class="pt-id">${escHtml(i.assetId)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const previewRows = items.map(i => `
+    <div class="pt-preview-row">
+      <div class="pt-label">
+        <div class="pt-barcode">${code128SVG(i.assetId, {height:24})}</div>
+        <div class="pt-text">
+          <div class="pt-name">${escHtml(i.name).slice(0,32)}</div>
+          <div class="pt-id">${escHtml(i.assetId)}</div>
+        </div>
+      </div>
+      <div class="pt-preview-meta">
+        <div class="pt-preview-name">${escHtml(i.name)}</div>
+        <div class="pt-preview-id">${escHtml(i.assetId)} · ${escHtml(i.cat||'Other')}</div>
+      </div>
+    </div>
+  `).join('');
+
   const html = `<!DOCTYPE html><html><head>
-  <meta charset="utf-8"><title>GRIP Labels · ${items.length} item${items.length!==1?'s':''}</title>
-  <style>
-    body{margin:0;background:#e6e6e6;font-family:-apple-system,sans-serif;}
-    .label-preview{background:#fff;color:#000;padding:.5in;max-width:8.5in;margin:1rem auto;box-shadow:0 2px 8px rgba(0,0,0,.15);}
-    .label-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.15in;}
-    .label-cell{border:1px dashed #ccc;padding:.2in .15in;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:1in;text-align:center;break-inside:avoid;}
-    .label-name{font-size:9pt;font-weight:600;color:#111;margin-bottom:4px;line-height:1.2;}
-    .label-barcode svg{width:100%;height:40px;}
-    .label-id{font-family:'Courier New',monospace;font-size:10pt;font-weight:700;color:#000;margin-top:4px;letter-spacing:.02em;}
-    .toolbar{position:fixed;top:12px;right:12px;display:flex;gap:.5rem;z-index:10;}
-    .toolbar button{background:#f0a020;color:#fff;border:none;padding:.6rem 1rem;font-size:.9rem;font-weight:600;border-radius:4px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.2);}
-    .toolbar button.secondary{background:#666;}
-    .header{max-width:8.5in;margin:1rem auto .5rem;padding:0 .5in;font-size:.85rem;color:#555;display:flex;justify-content:space-between;}
-    @media print{
-      body{background:#fff;}
-      .toolbar,.header{display:none;}
-      .label-preview{box-shadow:none;margin:0;padding:.3in;max-width:none;}
-      .label-cell{border-color:transparent;}
-      @page{margin:.3in;}
-    }
-  </style>
-  </head><body>
-    <div class="toolbar">
-      <button onclick="window.print()">🖨 Print</button>
-      <button class="secondary" onclick="window.close()">Close</button>
+<meta charset="utf-8"><title>GRIP Labels · P-Touch 18mm · ${items.length} label${items.length!==1?'s':''}</title>
+<style>
+  /* Page size for 18mm P-Touch tape:
+     Tape is 18mm tall, labels are typically 45-55mm long per asset.
+     Actual print area (print head coverage) on 18mm tape is ~12mm.
+     Leaving 3mm top+bottom margin in the driver usually handles this,
+     but we specify @page explicitly so length is predictable. */
+  @page { size: 54mm 18mm; margin: 0; }
+
+  /* Preview screen styling (web view only) */
+  body{ margin:0; background:#e6e6e6; font-family:-apple-system,Helvetica,Arial,sans-serif; }
+  .toolbar{
+    position:fixed;top:12px;right:12px;display:flex;gap:.5rem;z-index:10;
+  }
+  .toolbar button{
+    background:#f0a020;color:#fff;border:none;padding:.6rem 1rem;
+    font-size:.9rem;font-weight:600;border-radius:4px;cursor:pointer;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+  .toolbar button.secondary{ background:#666; }
+  .header{
+    max-width:720px;margin:1rem auto .5rem;padding:1rem 1.5rem;
+    background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+    display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  }
+  .header-title{font-weight:600;color:#111;}
+  .header-sub{font-size:.8rem;color:#777;margin-top:.15rem;}
+  .header-meta{font-size:.82rem;color:#555;text-align:right;font-family:monospace;}
+
+  .pt-preview-list{
+    max-width:720px;margin:0 auto 2rem;background:#fff;
+    border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  .pt-preview-row{
+    display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;
+    border-bottom:1px solid #eee;
+  }
+  .pt-preview-row:last-child{border-bottom:none;}
+  .pt-preview-meta{flex:1;min-width:0;}
+  .pt-preview-name{font-weight:600;color:#111;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pt-preview-id{font-size:.78rem;color:#888;font-family:monospace;margin-top:.1rem;}
+
+  /* The label itself — identical styles on screen and in print. */
+  .pt-label,.pt-page{
+    width:54mm;height:18mm;background:#fff;
+    display:flex;align-items:center;gap:2mm;
+    padding:1mm 2mm;box-sizing:border-box;
+    font-family:-apple-system,Helvetica,Arial,sans-serif;
+    color:#000;overflow:hidden;
+  }
+  .pt-label{ border:1px solid #ddd;border-radius:2px;flex-shrink:0; }
+  .pt-barcode{ width:22mm;flex-shrink:0; }
+  .pt-barcode svg{ width:100%;height:11mm;display:block; }
+  .pt-text{ flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:.5mm; }
+  .pt-name{
+    font-size:6.5pt;font-weight:700;line-height:1.15;color:#000;
+    overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  }
+  .pt-id{
+    font-family:'Courier New',monospace;font-size:7pt;font-weight:700;
+    color:#000;letter-spacing:.02em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+
+  /* Print: show only the labels, one per page, no UI chrome */
+  @media print{
+    body{ background:#fff; }
+    .toolbar,.header,.pt-preview-list{ display:none !important; }
+    .pt-page{ break-after:page;page-break-after:always; }
+    .pt-page:last-child{ break-after:auto;page-break-after:auto; }
+  }
+  /* Hide the dedicated print-only .pt-page stack on screen */
+  @media screen{
+    .pt-pages-host{ display:none; }
+  }
+</style>
+</head><body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨 Print to P-Touch</button>
+    <button class="secondary" onclick="window.close()">Close</button>
+  </div>
+  <div class="header">
+    <div>
+      <div class="header-title">${escHtml(owner)} · Asset Labels</div>
+      <div class="header-sub">Brother P-Touch · 18mm TZ/TZe tape · 54mm label length</div>
     </div>
-    <div class="header">
-      <span><strong>${escHtml(owner)} · Asset Labels</strong></span>
-      <span>${items.length} label${items.length!==1?'s':''} · ${new Date().toLocaleDateString()}</span>
+    <div class="header-meta">
+      ${items.length} label${items.length!==1?'s':''}<br>
+      <span style="color:#aaa">${today}</span>
     </div>
-    <div class="label-preview">
-      <div class="label-grid">${cells}</div>
-    </div>
-  </body></html>`;
-  const w = window.open('', '_blank', 'width=900,height=1100');
+  </div>
+
+  <!-- Screen preview: rendered as a stacked list so you can verify -->
+  <div class="pt-preview-list">${previewRows}</div>
+
+  <!-- Print payload: each label on its own page -->
+  <div class="pt-pages-host">${pages}</div>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=760,height=900');
   if(!w){ toast('Pop-up blocked — allow pop-ups and try again.'); return; }
   w.document.open(); w.document.write(html); w.document.close();
+  closeModal('m-label-print');
 }
+
+// ── .lbx export path ─────────────────────────────────────
+// Brother's native P-Touch Editor format. Each label becomes a
+// separate <style:sheet> inside a single <pt:body>, so opening the
+// file in P-Touch Editor shows a multi-page document with one label
+// per asset. User can then print, edit, or re-save.
+//
+// Reference: https://github.com/Alecto3-D/brother-p-touch-editor-format
+// Cross-checked against jdlien/lbx-utils spec notes.
+async function generateLabelLbx(){
+  const items = countLabelSelection();
+  if(!items.length) return;
+  try {
+    const files = buildLbxFiles(items);
+    const blob = buildZip(files);
+    const stamp = new Date().toISOString().slice(0,10);
+    const owner = ((appSettings&&appSettings.owner_name) || 'GRIP').replace(/[^A-Za-z0-9_]/g,'_');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${owner}_Labels_${stamp}.lbx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast(`Exported ${items.length} label${items.length!==1?'s':''} as .lbx — open in P-Touch Editor.`);
+    closeModal('m-label-print');
+  } catch(e){
+    console.error('LBX export failed:', e);
+    toast('LBX export failed. See console for details.');
+  }
+}
+
+// ── LBX XML builders ─────────────────────────────────────
+// Brother uses 1pt = 1/72 inch. 18mm tape ≈ 51pt tall.
+// Print area is ~34pt of that (standard Brother "default margin"
+// profile). Labels are 54mm long ≈ 153pt.
+//
+// All offsets are measured from the paper origin (not the print area).
+// We pin the barcode to the left and the text block to the right,
+// with a little vertical slack so text clips cleanly if too long.
+function buildLbxFiles(items){
+  const LABEL_W_PT  = 153;    // 54mm
+  const LABEL_H_PT  = 51;     // 18mm
+  const PRINT_Y_PT  = 8.4;    // Brother default top margin
+  const PRINT_X_PT  = 4.3;    // Brother default left margin
+  const PRINT_W_PT  = LABEL_W_PT - (PRINT_X_PT * 2);
+  const PRINT_H_PT  = LABEL_H_PT - (PRINT_Y_PT * 2);
+
+  const sheets = items.map((item, idx) => buildLabelSheet(item, idx, {
+    LABEL_W_PT, LABEL_H_PT, PRINT_X_PT, PRINT_Y_PT, PRINT_W_PT, PRINT_H_PT
+  })).join('');
+
+  const labelXml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main" xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style" xmlns:text="http://schemas.brother.info/ptouch/2007/lbx/text" xmlns:draw="http://schemas.brother.info/ptouch/2007/lbx/draw" xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image" xmlns:barcode="http://schemas.brother.info/ptouch/2007/lbx/barcode" xmlns:database="http://schemas.brother.info/ptouch/2007/lbx/database" xmlns:table="http://schemas.brother.info/ptouch/2007/lbx/table" version="1.9" generator="GRIP Gear Tracker">
+<pt:body currentSheet="Sheet 1">${sheets}</pt:body>
+</pt:document>`;
+
+  const propXml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<meta xmlns="http://schemas.brother.info/ptouch/2007/lbx/meta" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/">
+<dc:title>GRIP Asset Labels</dc:title>
+<dc:subject></dc:subject>
+<dc:creator>GRIP Gear Tracker</dc:creator>
+<dc:description>Asset barcodes generated from GRIP inventory</dc:description>
+<dcterms:created>${new Date().toISOString()}</dcterms:created>
+<dcterms:modified>${new Date().toISOString()}</dcterms:modified>
+<appName>GRIP Gear Tracker</appName>
+</meta>`;
+
+  return [
+    { name: 'label.xml', data: labelXml },
+    { name: 'prop.xml',  data: propXml  },
+  ];
+}
+
+function buildLabelSheet(item, idx, dim){
+  const name = (item.name||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[s]));
+  const aid  = (item.assetId||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[s]));
+  const nameLen = name.length;
+  const aidLen  = aid.length;
+  const sheetName = `Sheet ${idx + 1}`;
+
+  // Barcode on left ~45pt wide × 30pt tall
+  const bcX = dim.PRINT_X_PT + 1;
+  const bcY = dim.PRINT_Y_PT + 3;
+  const bcW = 45;
+  const bcH = 30;
+
+  // Text block on right
+  const txX = bcX + bcW + 2;
+  const txW = dim.LABEL_W_PT - txX - dim.PRINT_X_PT - 1;
+
+  const nameY = dim.PRINT_Y_PT + 2;
+  const nameH = 16;
+  const idY   = nameY + nameH + 1;
+  const idH   = 13;
+
+  return `<style:sheet name="${sheetName}">
+<style:paper media="0" width="${dim.LABEL_W_PT}pt" height="${dim.LABEL_H_PT}pt" marginLeft="${dim.PRINT_X_PT}pt" marginTop="${dim.PRINT_Y_PT}pt" marginRight="${dim.PRINT_X_PT}pt" marginBottom="${dim.PRINT_Y_PT}pt" orientation="landscape" autoLength="false" monochromeDisplay="true" paperColor="#FFFFFF" paperInk="#000000" split="1" format="" backgroundTheme="0" printerID="0" printerName=""/>
+<style:cutLine regularCut="0pt" freeCut=""/>
+<style:backGround x="${dim.PRINT_X_PT}pt" y="${dim.PRINT_Y_PT}pt" width="${dim.PRINT_W_PT}pt" height="${dim.PRINT_H_PT}pt" brushStyle="NULL" brushId="0" color="#000000" backColor="#FFFFFF"/>
+<pt:objects>
+
+<barcode:barcode>
+<pt:objectStyle x="${bcX}pt" y="${bcY}pt" width="${bcW}pt" height="${bcH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
+<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
+<pt:brush style="NULL" color="#000000" id="0"/>
+<pt:expanded objectName="Barcode${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
+</pt:objectStyle>
+<barcode:barcodeStyle protocol="CODE128" lengths="${aidLen}" zeroFill="false" barWidth="1.0pt" barRatio="1:3" humanReadable="false" humanReadableAlignment="CENTER" checkDigit="true" autoLengths="true" margin="false" sameLengthBar="false" bearerBar="false"/>
+<pt:data>${aid}</pt:data>
+</barcode:barcode>
+
+<text:text>
+<pt:objectStyle x="${txX}pt" y="${nameY}pt" width="${txW}pt" height="${nameH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
+<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
+<pt:brush style="NULL" color="#000000" id="0"/>
+<pt:expanded objectName="Name${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
+</pt:objectStyle>
+<text:ptFontInfo>
+<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
+<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/>
+</text:ptFontInfo>
+<text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/>
+<text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/>
+<text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="10pt" combinedChars="false"/>
+<text:stringItem charLen="${nameLen}">
+<text:ptFontInfo>
+<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
+<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/>
+</text:ptFontInfo>
+</text:stringItem>
+<pt:data>${name}</pt:data>
+</text:text>
+
+<text:text>
+<pt:objectStyle x="${txX}pt" y="${idY}pt" width="${txW}pt" height="${idH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
+<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
+<pt:brush style="NULL" color="#000000" id="0"/>
+<pt:expanded objectName="AssetId${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
+</pt:objectStyle>
+<text:ptFontInfo>
+<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
+<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="9pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/>
+</text:ptFontInfo>
+<text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/>
+<text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/>
+<text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="9pt" combinedChars="false"/>
+<text:stringItem charLen="${aidLen}">
+<text:ptFontInfo>
+<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
+<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="9pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/>
+</text:ptFontInfo>
+</text:stringItem>
+<pt:data>${aid}</pt:data>
+</text:text>
+
+</pt:objects>
+</style:sheet>`;
+}
+
+// ── Minimal in-browser ZIP writer ────────────────────────
+// STORE method only (no compression) — LBX files are small XML
+// documents where compression overhead isn't worth the library
+// weight. Produces a standards-compliant ZIP that P-Touch Editor,
+// macOS Archive Utility, 7-Zip, and Windows Explorer all accept.
+//
+// Reference: PKZIP Application Note (APPNOTE.TXT).
+function buildZip(files){
+  const enc = new TextEncoder();
+  const parts   = [];      // Uint8Array chunks to concat at the end
+  const centrals = [];     // central directory records
+  let   offset  = 0;       // running offset into the ZIP
+
+  for(const f of files){
+    const nameBytes = enc.encode(f.name);
+    const dataBytes = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const crc       = crc32(dataBytes);
+    const size      = dataBytes.length;
+
+    // Local file header (30 bytes + name + data)
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0,  0x04034b50, true);  // signature
+    local.setUint16(4,  20, true);          // version needed (2.0)
+    local.setUint16(6,  0,  true);          // general purpose flags
+    local.setUint16(8,  0,  true);          // method: STORE
+    local.setUint16(10, 0,  true);          // last mod time (unused)
+    local.setUint16(12, 0,  true);          // last mod date (unused)
+    local.setUint32(14, crc, true);
+    local.setUint32(18, size, true);        // compressed
+    local.setUint32(22, size, true);        // uncompressed
+    local.setUint16(26, nameBytes.length, true);
+    local.setUint16(28, 0, true);           // extra field length
+
+    parts.push(new Uint8Array(local.buffer), nameBytes, dataBytes);
+
+    // Central directory entry (46 bytes + name)
+    const central = new DataView(new ArrayBuffer(46));
+    central.setUint32(0,  0x02014b50, true);
+    central.setUint16(4,  20, true);        // version made by
+    central.setUint16(6,  20, true);        // version needed
+    central.setUint16(8,  0,  true);
+    central.setUint16(10, 0,  true);
+    central.setUint16(12, 0,  true);
+    central.setUint16(14, 0,  true);
+    central.setUint32(16, crc, true);
+    central.setUint32(20, size, true);
+    central.setUint32(24, size, true);
+    central.setUint16(28, nameBytes.length, true);
+    central.setUint16(30, 0, true);
+    central.setUint16(32, 0, true);         // comment length
+    central.setUint16(34, 0, true);         // disk number
+    central.setUint16(36, 0, true);         // internal attrs
+    central.setUint32(38, 0, true);         // external attrs
+    central.setUint32(42, offset, true);    // offset of local header
+
+    centrals.push({ bytes: new Uint8Array(central.buffer), name: nameBytes });
+
+    offset += 30 + nameBytes.length + size;
+  }
+
+  // Emit central directory
+  const cdOffset = offset;
+  for(const c of centrals){
+    parts.push(c.bytes, c.name);
+    offset += 46 + c.name.length;
+  }
+  const cdSize = offset - cdOffset;
+
+  // End-of-central-directory record
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0,  0x06054b50, true);
+  eocd.setUint16(4,  0, true);
+  eocd.setUint16(6,  0, true);
+  eocd.setUint16(8,  files.length, true);
+  eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, cdSize, true);
+  eocd.setUint32(16, cdOffset, true);
+  eocd.setUint16(20, 0, true);            // comment length
+  parts.push(new Uint8Array(eocd.buffer));
+
+  return new Blob(parts, { type: 'application/zip' });
+}
+
+// Precomputed CRC-32 table for the ZIP checksum.
+const _crc32Table = (() => {
+  const t = new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c = n;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  let c = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++){
+    c = _crc32Table[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
 
 // ── Code 128 encoder (Code Set B, handles ASCII 32–127) ─────
 // Returns an SVG string <svg>...</svg>. Minimal, no dependencies.
 // Reference: https://en.wikipedia.org/wiki/Code_128
-function code128SVG(text){
+function code128SVG(text, opts){
+  opts = opts || {};
   const PATTERNS = [
     '11011001100','11001101100','11001100110','10010011000','10010001100','10001001100','10011001000','10011000100','10001100100','11001001000',
     '11001000100','11000100100','10110011100','10011011100','10011001110','10111001100','10011101100','10011100110','11001110010','11001011100',
@@ -6170,32 +6664,25 @@ function code128SVG(text){
   ];
   const START_B = 104;
   const STOP = 106;
-  // Build code values
   const codes = [START_B];
   let sum = START_B;
   for(let i=0;i<text.length;i++){
     const c = text.charCodeAt(i);
-    // Code Set B: ASCII 32..127 → values 0..95
-    let v;
-    if(c >= 32 && c <= 127) v = c - 32;
-    else v = 0; // unsupported char → space
+    const v = (c >= 32 && c <= 127) ? c - 32 : 0;
     codes.push(v);
     sum += v * (i + 1);
   }
-  codes.push(sum % 103); // checksum
+  codes.push(sum % 103);
   codes.push(STOP);
 
-  // Build bar pattern string
   const bars = codes.map(c => PATTERNS[c]).join('');
-  // Render as SVG — each "module" is 1 unit wide; bars are 1s, gaps 0s.
   const unit = 1;
   const totalW = bars.length * unit;
-  const h = 40;
+  const h = typeof opts.height === 'number' ? opts.height : 40;
   let x = 0;
   let rects = '';
   for(let i=0;i<bars.length;){
     const ch = bars[i];
-    // Collect run length
     let j = i;
     while(j < bars.length && bars[j] === ch) j++;
     const runW = (j - i) * unit;

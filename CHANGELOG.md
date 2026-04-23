@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.18.0] - 2026-04-23  _minor_
+
+- Label output for Brother P-Touch 18mm tape: selection modal to pick items by All / by Category, browser print produces one-label-per-page output at exact 54mm x 18mm, plus new .lbx export path that generates a native Brother P-Touch Editor file (ZIP of label.xml + prop.xml) openable in P-Touch Editor on Windows/Mac. In-browser ZIP encoder, no libraries.
+
 ## [1.17.1] - 2026-04-23  _patch_
 
 - Fix: barcode scanner and label printing now work on all browsers. Use assetId camelCase to match client data model, and lazy-load ZXing-js fallback when BarcodeDetector is unavailable (desktop Linux/Windows Chrome, Firefox, older Safari). Clearer camera error messages.
