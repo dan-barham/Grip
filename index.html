@@ -1332,6 +1332,188 @@ td.ta .btn+.btn{margin-left:.25rem;}
 /* Keep old .mob-sel-new hidden on desktop — not used on mobile anymore */
 .mob-sel-new{display:none;}
 
+/* ── BARCODE SCANNER ───────────────────────────────────────
+   Full-screen modal overlay with live camera preview, a target
+   reticle, and a running scroll of recently-scanned items. Used
+   for scan-to-toggle in/out on the active day.                 */
+.scan-overlay{
+  position:fixed;inset:0;z-index:2000;
+  background:#000;display:none;flex-direction:column;
+}
+.scan-overlay.open{display:flex;}
+.scan-video-wrap{
+  position:relative;flex:1;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.scan-video{
+  width:100%;height:100%;object-fit:cover;
+  display:block;background:#000;
+}
+.scan-reticle{
+  position:absolute;top:50%;left:50%;
+  width:min(78vw,420px);height:min(38vw,200px);
+  transform:translate(-50%,-50%);
+  border:2px solid rgba(240,160,32,.9);
+  border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.45);
+  pointer-events:none;
+}
+.scan-reticle::before,
+.scan-reticle::after{
+  content:'';position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:scan-sweep 2.2s ease-in-out infinite;
+}
+.scan-reticle::after{animation-delay:1.1s;}
+@keyframes scan-sweep{
+  0%,100%{top:0;opacity:0;}
+  10%{opacity:1;}
+  90%{opacity:1;}
+  50%{top:calc(100% - 2px);opacity:1;}
+}
+.scan-reticle.flash-ok{
+  border-color:#10b981;
+  animation:scan-flash-ok .6s ease-out;
+}
+.scan-reticle.flash-err{
+  border-color:#e04848;
+  animation:scan-flash-err .6s ease-out;
+}
+@keyframes scan-flash-ok{
+  0%{box-shadow:0 0 0 9999px rgba(16,185,129,.3), 0 0 40px rgba(16,185,129,.8);}
+  100%{box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+}
+@keyframes scan-flash-err{
+  0%{box-shadow:0 0 0 9999px rgba(224,72,72,.3), 0 0 40px rgba(224,72,72,.8);}
+  100%{box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+}
+
+.scan-header{
+  position:absolute;top:0;left:0;right:0;
+  padding:.8rem 1rem;display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(0,0,0,.75),transparent);
+  z-index:2;color:#fff;pointer-events:none;
+}
+.scan-header button{pointer-events:auto;}
+.scan-title{
+  font-size:.82rem;font-weight:600;letter-spacing:.02em;
+  display:flex;align-items:center;gap:.5rem;
+}
+.scan-title .pulse{
+  width:8px;height:8px;border-radius:50%;background:#10b981;
+  box-shadow:0 0 8px #10b981;animation:scan-pulse 1.4s ease-in-out infinite;
+}
+@keyframes scan-pulse{50%{opacity:.4;transform:scale(.8);}}
+.scan-close{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  color:#fff;width:36px;height:36px;border-radius:50%;
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.scan-close:hover{background:rgba(255,255,255,.25);}
+
+.scan-bottom{
+  flex-shrink:0;background:#141414;color:#eee;
+  padding:.85rem 1rem 1rem;max-height:50vh;overflow:auto;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.scan-status{
+  font-size:.82rem;color:#aaa;margin-bottom:.4rem;
+  display:flex;align-items:center;gap:.5rem;
+}
+.scan-status .st-code{
+  font-family:var(--mono);font-size:.76rem;color:#f0a020;
+  background:rgba(240,160,32,.12);padding:.08rem .4rem;border-radius:4px;
+}
+.scan-day-label{
+  font-size:.72rem;color:#888;font-weight:500;
+  padding:.15rem .45rem;background:rgba(255,255,255,.06);border-radius:4px;
+}
+
+.scan-log{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem;}
+.scan-log-item{
+  display:grid;grid-template-columns:24px 1fr auto;gap:.6rem;align-items:center;
+  padding:.45rem .6rem;border-radius:6px;
+  background:rgba(255,255,255,.04);border-left:3px solid transparent;
+}
+.scan-log-item.ok-in{border-left-color:#10b981;}
+.scan-log-item.ok-out{border-left-color:#f0a020;}
+.scan-log-item.err{border-left-color:#e04848;background:rgba(224,72,72,.08);}
+.scan-log-icon{font-size:1rem;text-align:center;}
+.scan-log-body{min-width:0;}
+.scan-log-name{
+  font-size:.84rem;color:#eee;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.scan-log-meta{font-size:.7rem;color:#888;margin-top:.1rem;font-family:var(--mono);}
+.scan-log-badge{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:.14rem .5rem;border-radius:10px;font-family:var(--mono);
+}
+.scan-log-badge.in{background:rgba(16,185,129,.15);color:#34d399;}
+.scan-log-badge.out{background:rgba(240,160,32,.18);color:#fbbf24;}
+.scan-log-badge.err{background:rgba(224,72,72,.15);color:#fca5a5;}
+
+.scan-manual{
+  margin-top:.7rem;display:flex;gap:.4rem;
+}
+.scan-manual input{
+  flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  color:#eee;font-family:var(--mono);font-size:.85rem;
+  padding:.5rem .7rem;border-radius:5px;
+}
+.scan-manual input:focus{outline:none;border-color:var(--accent);background:rgba(255,255,255,.1);}
+.scan-manual input::placeholder{color:#666;}
+.scan-manual button{
+  background:var(--accent);color:#fff;border:none;
+  font-size:.85rem;font-weight:600;padding:.5rem .9rem;border-radius:5px;cursor:pointer;
+}
+
+.scan-empty{
+  text-align:center;padding:.6rem;color:#666;font-size:.8rem;
+}
+
+/* Entry button on the day toolbar + floating FAB on mobile */
+.btn-scan{
+  display:inline-flex;align-items:center;gap:.3rem;
+}
+.scan-fab{
+  position:fixed;right:1rem;bottom:5rem;z-index:90;
+  width:56px;height:56px;border-radius:50%;
+  background:var(--accent);color:#fff;border:none;
+  font-size:1.5rem;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
+  display:none;align-items:center;justify-content:center;
+  transition:transform .15s;
+}
+.scan-fab:active{transform:scale(.94);}
+@media(max-width:700px){.scan-fab{display:flex;}}
+.scan-fab.hidden{display:none !important;}
+
+/* ── LABEL PRINT PREVIEW ─────────────────────────────────── */
+.label-preview{
+  background:#fff;color:#000;padding:.5in;
+  max-width:8.5in;margin:0 auto;
+}
+.label-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.15in;
+}
+.label-cell{
+  border:1px dashed #ccc;padding:.2in .15in;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:1in;text-align:center;break-inside:avoid;
+}
+.label-name{font-size:9pt;font-weight:600;color:#111;margin-bottom:4px;line-height:1.2;}
+.label-barcode svg{width:100%;height:40px;}
+.label-id{font-family:'Courier New',monospace;font-size:10pt;font-weight:700;color:#000;margin-top:4px;letter-spacing:.02em;}
+@media print{
+  body > *{visibility:hidden;}
+  .label-preview,.label-preview *{visibility:visible;}
+  .label-preview{position:absolute;top:0;left:0;width:100%;padding:.3in;}
+  .label-cell{border-color:transparent;}
+  @page{margin:.3in;}
+}
+
 
 /* ── JOB RAIL SECTIONS ── */
 .rail-section-head{
@@ -2954,6 +3136,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
         <div class="topbar">
           <div class="topbar-title">Master Inventory</div>
           <button class="btn btn-accent btn-sm" onclick="resetInvModal();openModal('m-inv-add')">+ Add Item</button>
+          <button class="btn btn-ghost btn-sm" onclick="openLabelPrint()" title="Print barcode labels">🏷️ Print Labels</button>
           <input type="text" class="search" id="inv-search" placeholder="Search name, asset ID, notes…" style="max-width:220px" oninput="renderInventoryView()">
         </div>
         <div class="inv-summary" id="inv-summary"></div>
@@ -3390,6 +3573,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <span class="sc-key">D</span>      <span class="sc-desc">Add shoot day to current job</span>
     <span class="sc-key">G</span>      <span class="sc-desc">Focus gear search</span>
     <span class="sc-key">I</span>      <span class="sc-desc">Open inventory picker</span>
+    <span class="sc-key">S</span>      <span class="sc-desc">Open barcode scanner (scan-to-toggle)</span>
     <span class="sc-key">E</span>      <span class="sc-desc">Export day to CSV</span>
     <span class="sc-key">A</span>      <span class="sc-desc">Select all visible gear</span>
     <span class="sc-key">1</span>      <span class="sc-desc">Filter: All</span>
@@ -3400,6 +3584,48 @@ td.ta .btn+.btn{margin-left:.25rem;}
     <button class="btn btn-accent" onclick="closeModal('m-shortcuts')">Got it</button>
   </div>
 </div></div>
+
+<!-- ── BARCODE SCANNER ─────────────────────────────────────── -->
+<!-- Full-screen camera preview. Scans asset-ID barcodes and toggles
+     matching gear in/out on the active day. Manual-entry input
+     handles stubborn codes and USB/Bluetooth scanners via keyboard
+     wedge (they type the code + Enter into the focused field).   -->
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-header">
+    <div class="scan-title">
+      <span class="pulse" id="scan-pulse"></span>
+      <span id="scan-title-label">Scanning…</span>
+      <span class="scan-day-label" id="scan-day-label"></span>
+    </div>
+    <button class="scan-close" onclick="closeBarcodeScanner()" title="Close (Esc)">✕</button>
+  </div>
+  <div class="scan-video-wrap">
+    <video class="scan-video" id="scan-video" playsinline muted autoplay></video>
+    <div class="scan-reticle" id="scan-reticle"></div>
+  </div>
+  <div class="scan-bottom">
+    <div class="scan-status" id="scan-status">
+      <span>Point the camera at a barcode</span>
+    </div>
+    <div class="scan-manual">
+      <input type="text" id="scan-manual-input"
+        placeholder="Or type / scan asset ID here + Enter"
+        autocomplete="off" autocapitalize="characters">
+      <button onclick="submitManualScan()">Submit</button>
+    </div>
+    <div class="scan-log" id="scan-log"></div>
+  </div>
+</div>
+
+<!-- Floating scan button — shown on mobile only, hidden when not in
+     jobs view or no day is selected. -->
+<button class="scan-fab hidden" id="scan-fab" onclick="openBarcodeScanner()" title="Scan barcode">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+    <path d="M7 7v10M11 7v10M15 7v10"/>
+  </svg>
+</button>
 
 <!-- MODALS -->
 
@@ -3760,8 +3986,8 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.16.0';
-const GRIP_BUILD_DATE = '2026-04-22';
+const GRIP_VERSION = '1.17.0';
+const GRIP_BUILD_DATE = '2026-04-23';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities
@@ -5385,6 +5611,7 @@ function renderMain(){
     <!-- Mobile gear toolbar -->
     <div class="mob-content mob-gear-toolbar">
       <button class="btn btn-accent btn-sm" onclick="openInvPicker()">＋ Add Gear</button>
+      <button class="btn btn-ghost btn-sm btn-scan" onclick="openBarcodeScanner()" title="Scan barcode">📷 Scan</button>
       <button class="btn btn-in btn-sm" onclick="markAllStatus('in')">⬇ All In</button>
       <button class="btn btn-out btn-sm" onclick="markAllStatus('out')">⬆ All Out</button>
     </div>
@@ -5393,6 +5620,8 @@ function renderMain(){
     <div class="gear-controls" id="gear-controls-el">
       <div class="gc-actions">
         <button class="btn btn-accent btn-sm" onclick="openInvPicker()">＋ Add Gear</button>
+        <div class="gc-sep"></div>
+        <button class="btn btn-ghost btn-sm btn-scan" onclick="openBarcodeScanner()" title="Scan barcode to toggle in/out">📷 Scan</button>
         <div class="gc-sep"></div>
         <button class="btn btn-in btn-sm" onclick="markAllStatus('in')">⬇ All In</button>
         <button class="btn btn-out btn-sm" onclick="markAllStatus('out')">⬆ All Out</button>
@@ -5449,6 +5678,435 @@ function renderMain(){
 }
 
 function setGearFilter(f,el){gearFilter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderGearContent();}
+
+
+// ════════════════════════════════════════════════════════════
+//  BARCODE SCANNER — scan-to-toggle in/out on active day
+// ════════════════════════════════════════════════════════════
+// Uses the browser's native BarcodeDetector API when available
+// (Chrome/Edge/Safari-iOS-17+ on mobile). Falls back to a manual
+// text-entry input that works for any device and doubles as a
+// keyboard-wedge target for USB/Bluetooth scanners. No external
+// libraries, no build step — entirely self-contained.
+//
+// State is held in a small _scan object; the overlay lifecycle
+// takes over _navReady briefly (the overlay has its own close
+// handler that stops the camera stream cleanly) so it plays nice
+// with the browser-back integration.
+
+const _scan = {
+  stream: null,       // MediaStream from getUserMedia
+  detector: null,     // BarcodeDetector instance (or null)
+  rafId: null,        // requestAnimationFrame handle for the scan loop
+  lastCode: null,     // most recently successful code, for dedup
+  lastCodeAt: 0,      // timestamp of last successful code
+  dedupWindowMs: 1800,// ignore duplicate reads within this window
+  log: [],            // [{when, asset_id, result:'in'|'out'|'err', name?, error?}]
+  open: false,
+};
+
+async function openBarcodeScanner(){
+  // Requires an active day to toggle against — if not, open a picker prompt.
+  const d = activeDay();
+  if(!d){
+    toast('Select a shoot day first to scan items in/out.');
+    return;
+  }
+  const ov = document.getElementById('scan-overlay');
+  ov.classList.add('open');
+  _scan.open = true;
+  _scan.log = [];
+  renderScanLog();
+
+  // Update day label chip
+  const lbl = document.getElementById('scan-day-label');
+  if(lbl){
+    const j = activeJob();
+    lbl.textContent = (j?j.name+' · ':'') + (d.label||'Day');
+  }
+
+  // Focus manual input so USB/Bluetooth wedge scanners just work
+  setTimeout(()=>{
+    const inp = document.getElementById('scan-manual-input');
+    if(inp){ inp.value=''; inp.focus(); }
+  }, 60);
+
+  setScanStatus('Requesting camera access…', '');
+
+  // Try live camera scan. On any failure, the manual input still works.
+  try {
+    _scan.stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: {ideal: 'environment'},
+        width:  {ideal: 1280},
+        height: {ideal: 720},
+      },
+      audio: false,
+    });
+    const video = document.getElementById('scan-video');
+    video.srcObject = _scan.stream;
+    await video.play().catch(()=>{});
+
+    // BarcodeDetector is native in Chrome/Edge and iOS 17+ Safari.
+    // Fall back gracefully if missing — manual input still works.
+    if ('BarcodeDetector' in window) {
+      try {
+        const formats = await window.BarcodeDetector.getSupportedFormats();
+        const want = ['code_128','code_39','ean_13','ean_8','qr_code','itf','upc_a','upc_e'];
+        const supported = want.filter(f => formats.includes(f));
+        _scan.detector = new window.BarcodeDetector({formats: supported.length?supported:undefined});
+        setScanStatus('Point the camera at a barcode', '');
+        scanLoop();
+      } catch(e){
+        console.warn('BarcodeDetector init failed:', e);
+        _scan.detector = null;
+        setScanStatus('Camera active — live detection unavailable. Use the input below.', '');
+      }
+    } else {
+      _scan.detector = null;
+      setScanStatus('Camera active — this browser has no native barcode detection. Type / scan the asset ID into the input below.', '');
+    }
+  } catch(e){
+    console.warn('camera access denied:', e);
+    setScanStatus('Camera unavailable — type / scan asset IDs into the input below.', '');
+  }
+}
+
+function closeBarcodeScanner(){
+  const ov = document.getElementById('scan-overlay');
+  ov.classList.remove('open');
+  _scan.open = false;
+  if(_scan.rafId){ cancelAnimationFrame(_scan.rafId); _scan.rafId=null; }
+  if(_scan.stream){
+    _scan.stream.getTracks().forEach(t=>t.stop());
+    _scan.stream = null;
+  }
+  const video = document.getElementById('scan-video');
+  if(video) video.srcObject = null;
+  _scan.detector = null;
+}
+
+function scanLoop(){
+  if(!_scan.open || !_scan.detector) return;
+  const video = document.getElementById('scan-video');
+  if(!video || video.readyState < 2){
+    _scan.rafId = requestAnimationFrame(scanLoop);
+    return;
+  }
+  _scan.detector.detect(video).then(codes => {
+    if(codes && codes.length){
+      // Take the largest (usually the most centred / biggest on screen)
+      codes.sort((a,b)=> (b.boundingBox?.width||0) - (a.boundingBox?.width||0));
+      handleScannedCode(codes[0].rawValue);
+    }
+  }).catch(e => {
+    // Some browsers throw transient decode errors — swallow and continue.
+    console.debug('detect err', e);
+  }).finally(() => {
+    if(_scan.open && _scan.detector){
+      _scan.rafId = requestAnimationFrame(scanLoop);
+    }
+  });
+}
+
+function handleScannedCode(raw){
+  if(!raw) return;
+  const code = String(raw).trim().toUpperCase();
+  if(!code) return;
+  const now = performance.now();
+  // Dedup: ignore the same code if it came in within the window
+  if(code === _scan.lastCode && (now - _scan.lastCodeAt) < _scan.dedupWindowMs) return;
+  _scan.lastCode = code;
+  _scan.lastCodeAt = now;
+  processScan(code);
+}
+
+function submitManualScan(){
+  const inp = document.getElementById('scan-manual-input');
+  if(!inp) return;
+  const v = inp.value.trim();
+  if(!v) return;
+  inp.value = '';
+  inp.focus();
+  // Manual submissions don't go through the dedup window — user wants it done.
+  _scan.lastCode = null;
+  processScan(v.toUpperCase());
+}
+
+// Wire Enter key on the manual input to submit.
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('scan-manual-input');
+  if(inp){
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); submitManualScan(); }
+    });
+  }
+});
+
+// Core toggle logic.
+// - Find gear on active day whose asset_id matches (case-insensitive).
+// - If found: flip status in ↔ out, re-render, push to log, flash green.
+// - If not found on this day: check inventory. If the item exists in
+//   inventory, offer to add it to the day and mark it out (two-step
+//   flow — we just auto-add as "out" since the user scanned it onto
+//   the truck).
+// - If completely unknown: flash red, log an error entry.
+async function processScan(code){
+  const d = activeDay();
+  if(!d){
+    flashScanResult('err');
+    logScan({asset_id: code, result:'err', error:'No active day'});
+    return;
+  }
+
+  // 1. Try matching gear already on this day
+  const match = d.gear.find(g => (g.assetId||'').toUpperCase() === code);
+  if(match){
+    const newStatus = match.status === 'out' ? 'in' : 'out';
+    match.status = newStatus;
+    renderGearContent();
+    await apiPut(`gear/${match.id}`, {
+      name: match.name, cat: match.cat, asset_id: match.assetId,
+      qty: match.qty, value: match.value, notes: match.notes||'',
+      status: newStatus, condition: match.condition||'Good'
+    });
+    logEntry(`Scanned <strong>${escHtml(match.name)}</strong> [${code}] → <strong class="${newStatus==='out'?'col-red':'col-green'}">${newStatus.toUpperCase()}</strong>`, newStatus==='out'?'out':'in');
+    flashScanResult('ok');
+    logScan({asset_id: code, result: newStatus, name: match.name});
+    return;
+  }
+
+  // 2. Not on this day yet — try master inventory
+  const invMatch = (S.inventory||[]).find(i => (i.asset_id||'').toUpperCase() === code);
+  if(invMatch){
+    // Auto-add to the day as "out" (user scanned it onto the truck)
+    const gearRow = {
+      id: uid(),
+      day_id: d.id,
+      name: invMatch.name,
+      cat: invMatch.cat || 'Other',
+      asset_id: invMatch.asset_id,
+      qty: 1,
+      value: invMatch.value || 0,
+      notes: '',
+      status: 'out',
+      condition: invMatch.condition || 'Good',
+      inventory_id: invMatch.id,
+    };
+    d.gear.push({
+      id: gearRow.id, name: gearRow.name, cat: gearRow.cat,
+      assetId: gearRow.asset_id, qty: 1, value: gearRow.value,
+      notes: '', status: 'out', condition: gearRow.condition,
+    });
+    renderGearContent();
+    await apiPost('gear', gearRow);
+    logEntry(`Scanned <strong>${escHtml(invMatch.name)}</strong> [${code}] → added to ${escHtml(d.label)} as <strong class="col-red">OUT</strong>`, 'add');
+    flashScanResult('ok');
+    logScan({asset_id: code, result:'out', name: invMatch.name, added:true});
+    return;
+  }
+
+  // 3. Unknown code
+  flashScanResult('err');
+  logScan({asset_id: code, result:'err', error:'Unknown asset ID'});
+}
+
+function flashScanResult(kind){
+  const ret = document.getElementById('scan-reticle');
+  if(!ret) return;
+  ret.classList.remove('flash-ok','flash-err');
+  // Force reflow so the animation restarts
+  void ret.offsetWidth;
+  ret.classList.add(kind==='ok'?'flash-ok':'flash-err');
+
+  // Haptic buzz where supported (Android, some iOS)
+  if(navigator.vibrate){
+    try { navigator.vibrate(kind==='ok'?[40]:[40,60,40]); } catch(e){}
+  }
+
+  // Short beep via WebAudio
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = kind==='ok' ? 880 : 220;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.13);
+    setTimeout(()=>ctx.close(), 250);
+  } catch(e){}
+}
+
+function logScan(entry){
+  _scan.log.unshift({when: Date.now(), ...entry});
+  if(_scan.log.length > 30) _scan.log.pop();
+  renderScanLog();
+  // Update status line to show the last action quickly
+  if(entry.result==='err'){
+    setScanStatus(`Unknown asset ID`, entry.asset_id);
+  } else if(entry.added){
+    setScanStatus(`Added → ${entry.name}`, entry.asset_id);
+  } else {
+    setScanStatus(`${entry.result.toUpperCase()} → ${entry.name}`, entry.asset_id);
+  }
+}
+
+function setScanStatus(text, code){
+  const el = document.getElementById('scan-status');
+  if(!el) return;
+  el.innerHTML = `<span>${escHtml(text)}</span>${code?`<span class="st-code">${escHtml(code)}</span>`:''}`;
+}
+
+function renderScanLog(){
+  const el = document.getElementById('scan-log');
+  if(!el) return;
+  if(!_scan.log.length){
+    el.innerHTML = `<div class="scan-empty">Scanned items will appear here</div>`;
+    return;
+  }
+  el.innerHTML = _scan.log.map(e => {
+    const cls = e.result==='err' ? 'err' : (e.result==='out' ? 'ok-out' : 'ok-in');
+    const icon = e.result==='err' ? '⚠️' : (e.result==='out' ? '🚚' : '✓');
+    const badge = e.result==='err' ? 'err' : e.result;
+    const badgeTxt = e.result==='err' ? 'UNKNOWN' : (e.added ? 'ADDED ' + e.result.toUpperCase() : e.result.toUpperCase());
+    const name = e.name || (e.error || 'Unknown');
+    const meta = e.asset_id + ' · ' + new Date(e.when).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return `<div class="scan-log-item ${cls}">
+      <div class="scan-log-icon">${icon}</div>
+      <div class="scan-log-body">
+        <div class="scan-log-name">${escHtml(name)}</div>
+        <div class="scan-log-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="scan-log-badge ${badge}">${badgeTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+// Small HTML escape helper used by the scanner.
+function escHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  LABEL PRINTING — Code-128 barcodes for asset IDs
+// ════════════════════════════════════════════════════════════
+// Pure-SVG Code 128 encoder; no library. Opens a new window with a
+// 3-column grid of labels sized for standard Avery 5160-ish sheets
+// and triggers Print. Prints only inventory items that have an
+// Asset ID set (so users can fill those in first).
+
+function openLabelPrint(){
+  const items = (S.inventory||[]).filter(i => (i.asset_id||'').trim());
+  if(!items.length){
+    toast('No inventory items have Asset IDs yet. Add some first.');
+    return;
+  }
+  const owner = (appSettings&&appSettings.owner_name) || 'GRIP';
+  const cells = items.map(i => `
+    <div class="label-cell">
+      <div class="label-name">${escHtml(i.name).slice(0,40)}</div>
+      <div class="label-barcode">${code128SVG(i.asset_id)}</div>
+      <div class="label-id">${escHtml(i.asset_id)}</div>
+    </div>`).join('');
+  const html = `<!DOCTYPE html><html><head>
+  <meta charset="utf-8"><title>GRIP Labels · ${items.length} item${items.length!==1?'s':''}</title>
+  <style>
+    body{margin:0;background:#e6e6e6;font-family:-apple-system,sans-serif;}
+    .label-preview{background:#fff;color:#000;padding:.5in;max-width:8.5in;margin:1rem auto;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+    .label-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.15in;}
+    .label-cell{border:1px dashed #ccc;padding:.2in .15in;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:1in;text-align:center;break-inside:avoid;}
+    .label-name{font-size:9pt;font-weight:600;color:#111;margin-bottom:4px;line-height:1.2;}
+    .label-barcode svg{width:100%;height:40px;}
+    .label-id{font-family:'Courier New',monospace;font-size:10pt;font-weight:700;color:#000;margin-top:4px;letter-spacing:.02em;}
+    .toolbar{position:fixed;top:12px;right:12px;display:flex;gap:.5rem;z-index:10;}
+    .toolbar button{background:#f0a020;color:#fff;border:none;padding:.6rem 1rem;font-size:.9rem;font-weight:600;border-radius:4px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.2);}
+    .toolbar button.secondary{background:#666;}
+    .header{max-width:8.5in;margin:1rem auto .5rem;padding:0 .5in;font-size:.85rem;color:#555;display:flex;justify-content:space-between;}
+    @media print{
+      body{background:#fff;}
+      .toolbar,.header{display:none;}
+      .label-preview{box-shadow:none;margin:0;padding:.3in;max-width:none;}
+      .label-cell{border-color:transparent;}
+      @page{margin:.3in;}
+    }
+  </style>
+  </head><body>
+    <div class="toolbar">
+      <button onclick="window.print()">🖨 Print</button>
+      <button class="secondary" onclick="window.close()">Close</button>
+    </div>
+    <div class="header">
+      <span><strong>${escHtml(owner)} · Asset Labels</strong></span>
+      <span>${items.length} label${items.length!==1?'s':''} · ${new Date().toLocaleDateString()}</span>
+    </div>
+    <div class="label-preview">
+      <div class="label-grid">${cells}</div>
+    </div>
+  </body></html>`;
+  const w = window.open('', '_blank', 'width=900,height=1100');
+  if(!w){ toast('Pop-up blocked — allow pop-ups and try again.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+// ── Code 128 encoder (Code Set B, handles ASCII 32–127) ─────
+// Returns an SVG string <svg>...</svg>. Minimal, no dependencies.
+// Reference: https://en.wikipedia.org/wiki/Code_128
+function code128SVG(text){
+  const PATTERNS = [
+    '11011001100','11001101100','11001100110','10010011000','10010001100','10001001100','10011001000','10011000100','10001100100','11001001000',
+    '11001000100','11000100100','10110011100','10011011100','10011001110','10111001100','10011101100','10011100110','11001110010','11001011100',
+    '11001001110','11011100100','11001110100','11101101110','11101001100','11100101100','11100100110','11101100100','11100110100','11100110010',
+    '11011011000','11011000110','11000110110','10100011000','10001011000','10001000110','10110001000','10001101000','10001100010','11010001000',
+    '11000101000','11000100010','10110111000','10110001110','10001101110','10111011000','10111000110','10001110110','11101110110','11010001110',
+    '11000101110','11011101000','11011100010','11011101110','11101011000','11101000110','11100010110','11101101000','11101100010','11100011010',
+    '11101111010','11001000010','11110001010','10100110000','10100001100','10010110000','10010000110','10000101100','10000100110','10110010000',
+    '10110000100','10011010000','10011000010','10000110100','10000110010','11000010010','11001010000','11110111010','11000010100','10001111010',
+    '10100111100','10010111100','10010011110','10111100100','10011110100','10011110010','11110100100','11110010100','11110010010','11011011110',
+    '11011110110','11110110110','10101111000','10100011110','10001011110','10111101000','10111100010','11110101000','11110100010','10111011110',
+    '10111101110','11101011110','11110101110','11010000100','11010010000','11010011100','1100011101011'
+  ];
+  const START_B = 104;
+  const STOP = 106;
+  // Build code values
+  const codes = [START_B];
+  let sum = START_B;
+  for(let i=0;i<text.length;i++){
+    const c = text.charCodeAt(i);
+    // Code Set B: ASCII 32..127 → values 0..95
+    let v;
+    if(c >= 32 && c <= 127) v = c - 32;
+    else v = 0; // unsupported char → space
+    codes.push(v);
+    sum += v * (i + 1);
+  }
+  codes.push(sum % 103); // checksum
+  codes.push(STOP);
+
+  // Build bar pattern string
+  const bars = codes.map(c => PATTERNS[c]).join('');
+  // Render as SVG — each "module" is 1 unit wide; bars are 1s, gaps 0s.
+  const unit = 1;
+  const totalW = bars.length * unit;
+  const h = 40;
+  let x = 0;
+  let rects = '';
+  for(let i=0;i<bars.length;){
+    const ch = bars[i];
+    // Collect run length
+    let j = i;
+    while(j < bars.length && bars[j] === ch) j++;
+    const runW = (j - i) * unit;
+    if(ch === '1'){
+      rects += `<rect x="${x}" y="0" width="${runW}" height="${h}" fill="#000"/>`;
+    }
+    x += runW;
+    i = j;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${h}" preserveAspectRatio="none">${rects}</svg>`;
+}
 
 // ── Job Dashboard (Overview) ────────────────────────────────
 // Single-job bird's-eye view: summary, day timeline, gear master list,
@@ -6777,6 +7435,8 @@ document.addEventListener('keydown',e=>{
   const typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
 
   if(e.key==='Escape'){
+    // Scanner overlay takes precedence — it has its own teardown.
+    if(_scan.open){ closeBarcodeScanner(); return; }
     const ov = _navOpenOverlay();
     const hasDrawer = _activeDrawer;
     if((ov || hasDrawer) && _navReady && history.state && history.state._app
@@ -6795,6 +7455,7 @@ document.addEventListener('keydown',e=>{
     if(e.key==='d'||e.key==='D'){if(activeJob())openModal('m-new-day');}
     if(e.key==='g'||e.key==='G'){const s=document.getElementById('gsearch');if(s){s.focus();s.select();e.preventDefault();}}
     if(e.key==='i'||e.key==='I'){if(activeDay())openInvPicker();}
+    if(e.key==='s'||e.key==='S'){if(activeDay())openBarcodeScanner();}
     if(e.key==='e'||e.key==='E'){exportDayCSV();}
     if(e.key==='a'||e.key==='A'){selectAllVisible();}
     if(e.key==='1'){const t=document.querySelector('.ftab');if(t)setGearFilter('all',t);}
@@ -10312,6 +10973,12 @@ function renderAll(){
   if(activeView==='calendar') renderCalendarView();
   if(activeView==='contacts') renderContactsView();
   if(activeView==='borrow')   renderBorrowAdminView();
+  // Mobile FAB: only show on Jobs view with a day selected and not in dashboard mode
+  const fab = document.getElementById('scan-fab');
+  if(fab){
+    const showFab = activeView==='jobs' && activeDay() && !dashboardMode && !_scan.open;
+    fab.classList.toggle('hidden', !showFab);
+  }
 }
 // ══════════════════════════════════════════════════════════
 //  PANEL RESIZE

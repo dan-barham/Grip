@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.17.0] - 2026-04-23  _minor_
+
+- Barcode scanner + label printing: new Scan button and mobile FAB opens a full-screen camera overlay that reads Code 128/39/EAN/UPC/QR via the native BarcodeDetector API and toggles matching gear in/out on the active day. Unknown-on-day codes auto-add from master inventory as out. Manual-entry fallback input doubles as a keyboard-wedge target for USB/BT scanners. Haptic buzz + WebAudio beep on scan. New Print Labels action on Inventory renders a 3-across grid of Code 128 labels as pure SVG (no libraries) in a print-friendly popup. New S keyboard shortcut.
+
 ---
 
 ## [1.16.0] — 2026-04-22  _calibration_
