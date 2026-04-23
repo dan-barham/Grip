@@ -4032,7 +4032,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.18.1';
+const GRIP_VERSION = '1.18.2';
 const GRIP_BUILD_DATE = '2026-04-23';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6484,47 +6484,64 @@ function buildPropXml(item){
 }
 
 // Build a single-label label.xml. Geometry is 18mm tape × 54mm
-// length with Brother-standard 8.4pt / 4.3pt margins (matches the
-// Alecto3-D reference). All attribute orderings and element nesting
-// mirror a saved-from-P-Touch-Editor label byte-for-byte.
+// length, using Brother's convention where the <style:paper>
+// dimensions are the PORTRAIT dimensions of the tape (width = tape
+// width across its narrow axis, height = tape length along the feed
+// direction), and orientation="landscape" tells the editor to rotate
+// for display. All object x/y coordinates are in that portrait
+// frame — x in [0..51] is the narrow tape axis, y in [0..153] is
+// the long feed axis.
+//
+// Matches the convention of the Alecto3-D reference label where
+// the die-cut QL-700 paper is declared width=175.7pt height=319.8pt
+// (narrow × long) with orientation="landscape".
 function buildSingleLabelXml(item){
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
   const name = esc(item.name||'');
   const aid  = esc(item.assetId||'');
   const nameLen = (item.name||'').length;
   const aidLen  = (item.assetId||'').length;
+  const n = x => Math.round(x*10)/10;   // 1-decimal rounding for clean XML
 
-  // Tape geometry
-  const LABEL_W = 153;   // 54mm
-  const LABEL_H = 51;    // 18mm (tape width)
+  // Tape geometry (portrait frame — tape is 18mm wide × 54mm long)
+  const PAPER_W = 51;    // 18mm tape width (across)
+  const PAPER_H = 153;   // 54mm label length (along feed)
   const MAR_L = 4.3;
   const MAR_T = 8.4;
   const MAR_R = 4.3;
   const MAR_B = 8.4;
   const BG_X = MAR_L;
-  const BG_Y = MAR_T;      // Note: bg x/y are inset within the sheet
-  const BG_W = LABEL_W - MAR_L - MAR_R;
-  const BG_H = LABEL_H - MAR_T - MAR_B;
+  const BG_Y = MAR_T;
+  const BG_W = PAPER_W - MAR_L - MAR_R;
+  const BG_H = PAPER_H - MAR_T - MAR_B;
 
-  // Barcode: 45pt wide × 30pt tall, on the left half
-  const bcX = MAR_L + 2;
-  const bcY = MAR_T + 2;
-  const bcW = 60;
-  const bcH = 32;
+  // Layout in portrait frame (rotated 90° by orientation=landscape):
+  //   - Barcode: top portion (upper half of the 'long' axis)
+  //     x = full printable width (narrow axis), height = 60pt
+  //   - Name:    below the barcode
+  //   - Asset ID: bottom
+  // When rendered landscape, the barcode will appear on the LEFT
+  // and the text block on the RIGHT, reading along the tape.
+  const bcX = MAR_L;
+  const bcY = MAR_T;
+  const bcW = PAPER_W - MAR_L - MAR_R;   // full printable width
+  const bcH = 65;                         // about 23mm along tape
 
-  // Text column on the right half
-  const txX = bcX + bcW + 2;
-  const txW = LABEL_W - txX - MAR_R - 1;
-  const nameY = MAR_T + 2;
-  const nameH = 18;
-  const idY   = nameY + nameH + 1;
-  const idH   = 14;
+  const nameX = MAR_L;
+  const nameY = bcY + bcH + 4;
+  const nameW = PAPER_W - MAR_L - MAR_R;
+  const nameH = 20;
+
+  const idX = MAR_L;
+  const idY = nameY + nameH + 2;
+  const idW = PAPER_W - MAR_L - MAR_R;
+  const idH = 16;
 
   // Build XML. Attribute order matches the Alecto3-D reference
   // label exactly — P-Touch Editor is known to crash on reordered
   // attributes in some versions.
   return `<?xml version="1.0" encoding="UTF-8"?>
-<pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main" xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style" xmlns:text="http://schemas.brother.info/ptouch/2007/lbx/text" xmlns:draw="http://schemas.brother.info/ptouch/2007/lbx/draw" xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image" xmlns:barcode="http://schemas.brother.info/ptouch/2007/lbx/barcode" xmlns:database="http://schemas.brother.info/ptouch/2007/lbx/database" xmlns:table="http://schemas.brother.info/ptouch/2007/lbx/table" version="1.1" generator="GRIP Gear Tracker"><pt:body currentSheet="Sheet 1"><style:sheet name="Sheet 1"><style:paper media="0" width="${LABEL_W}pt" height="${LABEL_H}pt" marginLeft="${MAR_L}pt" marginTop="${MAR_T}pt" marginRight="${MAR_R}pt" marginBottom="${MAR_B}pt" orientation="landscape" autoLength="true" monochromeDisplay="true" paperColor="#FFFFFF" paperInk="#000000" split="1" format="" backgroundTheme="0" printerID="0" printerName=""/><style:cutLine regularCut="0pt" freeCut=""/><style:backGround x="${BG_X}pt" y="${BG_Y}pt" width="${BG_W}pt" height="${BG_H}pt" brushStyle="NULL" brushId="0" color="#000000" backColor="#FFFFFF"/><pt:objects><barcode:barcode><pt:objectStyle x="${bcX}pt" y="${bcY}pt" width="${bcW}pt" height="${bcH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Barcode" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><barcode:barcodeStyle protocol="CODE128" lengths="${aidLen}" zeroFill="false" barWidth="1.2pt" barRatio="1:3" humanReadable="false" humanReadableAlignment="CENTER" checkDigit="true" autoLengths="true" margin="false" sameLengthBar="false" bearerBar="false"/><pt:data>${aid}</pt:data></barcode:barcode><text:text><pt:objectStyle x="${txX}pt" y="${nameY}pt" width="${txW}pt" height="${nameH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Name" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="12pt" combinedChars="false"/><text:stringItem charLen="${nameLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${name}</pt:data></text:text><text:text><pt:objectStyle x="${txX}pt" y="${idY}pt" width="${txW}pt" height="${idH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="AssetId" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="10pt" combinedChars="false"/><text:stringItem charLen="${aidLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${aid}</pt:data></text:text></pt:objects></style:sheet></pt:body></pt:document>`;
+<pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main" xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style" xmlns:text="http://schemas.brother.info/ptouch/2007/lbx/text" xmlns:draw="http://schemas.brother.info/ptouch/2007/lbx/draw" xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image" xmlns:barcode="http://schemas.brother.info/ptouch/2007/lbx/barcode" xmlns:database="http://schemas.brother.info/ptouch/2007/lbx/database" xmlns:table="http://schemas.brother.info/ptouch/2007/lbx/table" version="1.1" generator="GRIP Gear Tracker"><pt:body currentSheet="Sheet 1"><style:sheet name="Sheet 1"><style:paper media="0" width="${n(PAPER_W)}pt" height="${n(PAPER_H)}pt" marginLeft="${n(MAR_L)}pt" marginTop="${n(MAR_T)}pt" marginRight="${n(MAR_R)}pt" marginBottom="${n(MAR_B)}pt" orientation="landscape" autoLength="true" monochromeDisplay="true" paperColor="#FFFFFF" paperInk="#000000" split="1" format="" backgroundTheme="0" printerID="0" printerName=""/><style:cutLine regularCut="0pt" freeCut=""/><style:backGround x="${n(BG_X)}pt" y="${n(BG_Y)}pt" width="${n(BG_W)}pt" height="${n(BG_H)}pt" brushStyle="NULL" brushId="0" color="#000000" backColor="#FFFFFF"/><pt:objects><barcode:barcode><pt:objectStyle x="${n(bcX)}pt" y="${n(bcY)}pt" width="${n(bcW)}pt" height="${n(bcH)}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Barcode" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><barcode:barcodeStyle protocol="CODE128" lengths="${aidLen}" zeroFill="false" barWidth="1.2pt" barRatio="1:3" humanReadable="false" humanReadableAlignment="CENTER" checkDigit="true" autoLengths="true" margin="false" sameLengthBar="false" bearerBar="false"/><pt:data>${aid}</pt:data></barcode:barcode><text:text><pt:objectStyle x="${n(nameX)}pt" y="${n(nameY)}pt" width="${n(nameW)}pt" height="${n(nameH)}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Name" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="12pt" combinedChars="false"/><text:stringItem charLen="${nameLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${name}</pt:data></text:text><text:text><pt:objectStyle x="${n(idX)}pt" y="${n(idY)}pt" width="${n(idW)}pt" height="${n(idH)}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="AssetId" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="10pt" combinedChars="false"/><text:stringItem charLen="${aidLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${aid}</pt:data></text:text></pt:objects></style:sheet></pt:body></pt:document>`;
 }
 
 // ── Minimal in-browser ZIP writer ────────────────────────

@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.18.2] - 2026-04-23  _patch_
+
+- Fix .lbx label text overlapping the barcode in P-Touch Editor. Paper dimensions in the .lbx are now declared in Brother's portrait frame — width = tape width across the narrow axis (51pt for 18mm tape), height = label length along feed (153pt for 54mm) — with orientation=landscape for display rotation. Object coordinates laid out along the long axis so barcode appears on the left and text on the right after the editor's landscape rotation, rather than stacking into the same band. Values rounded to 1 decimal place for clean XML.
+
 ## [1.18.1] - 2026-04-23  _patch_
 
 - Fix LBX export crashing P-Touch Editor: downgrade document version to 1.1 (the known-good Alecto3-D reference version), emit one .lbx per label bundled in an outer .zip instead of multi-sheet single file, and mirror the reference label's attribute ordering exactly. P-Touch Editor is intolerant of reordered attributes and multi-sheet documents from non-Brother generators.
