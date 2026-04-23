@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.18.1] - 2026-04-23  _patch_
+
+- Fix LBX export crashing P-Touch Editor: downgrade document version to 1.1 (the known-good Alecto3-D reference version), emit one .lbx per label bundled in an outer .zip instead of multi-sheet single file, and mirror the reference label's attribute ordering exactly. P-Touch Editor is intolerant of reordered attributes and multi-sheet documents from non-Brother generators.
+
 ## [1.18.0] - 2026-04-23  _minor_
 
 - Label output for Brother P-Touch 18mm tape: selection modal to pick items by All / by Category, browser print produces one-label-per-page output at exact 54mm x 18mm, plus new .lbx export path that generates a native Brother P-Touch Editor file (ZIP of label.xml + prop.xml) openable in P-Touch Editor on Windows/Mac. In-browser ZIP encoder, no libraries.

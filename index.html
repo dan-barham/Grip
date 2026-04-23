@@ -3620,9 +3620,13 @@ td.ta .btn+.btn{margin-left:.25rem;}
     Sized for Brother P-Touch <strong>18mm</strong> TZ/TZe tape · 54mm label length
   </div>
   <div id="label-picker-body"></div>
+  <div style="font-size:.75rem;color:var(--text3);margin-top:.7rem;line-height:1.5">
+    <strong>.lbx export:</strong> one file per label (bundled in a .zip when selecting multiple). Extract and open each in P-Touch Editor.
+    <br><strong>Print preview:</strong> sends directly to any printer that can see your P-Touch.
+  </div>
   <div class="modal-foot" style="margin-top:1.2rem;display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
     <button class="btn btn-ghost" onclick="closeModal('m-label-print')">Cancel</button>
-    <button class="btn btn-ghost" id="lp-btn-export" onclick="generateLabelLbx()" title="Download .lbx file for Brother P-Touch Editor">⬇ Export .lbx</button>
+    <button class="btn btn-ghost" id="lp-btn-export" onclick="generateLabelLbx()" title="Download .lbx file (or .zip of .lbx files) for Brother P-Touch Editor">⬇ Export .lbx</button>
     <button class="btn btn-accent" id="lp-btn-print" onclick="generateLabelPrint()">🖨 Print Preview</button>
   </div>
 </div></div>
@@ -4028,7 +4032,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.18.0';
+const GRIP_VERSION = '1.18.1';
 const GRIP_BUILD_DATE = '2026-04-23';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6381,30 +6385,60 @@ function generateLabelPrint(){
 }
 
 // ── .lbx export path ─────────────────────────────────────
-// Brother's native P-Touch Editor format. Each label becomes a
-// separate <style:sheet> inside a single <pt:body>, so opening the
-// file in P-Touch Editor shows a multi-page document with one label
-// per asset. User can then print, edit, or re-save.
+// Brother's native P-Touch Editor format. P-Touch Editor is very
+// strict about element/attribute ordering and can crash on subtle
+// deviations. To maximize compatibility we:
 //
-// Reference: https://github.com/Alecto3-D/brother-p-touch-editor-format
-// Cross-checked against jdlien/lbx-utils spec notes.
+//   - Use document version "1.1" (matches the public Alecto3-D
+//     reference label that is known to open cleanly).
+//   - Generate ONE .lbx file per selected label (rather than packing
+//     multiple <style:sheet>s into one document — the editor's
+//     multi-sheet support is inconsistent across versions and that
+//     path crashes some installs).
+//   - Mirror the reference label's attribute order exactly in every
+//     element (pt:objectStyle, pt:pen, pt:brush, pt:expanded,
+//     style:sheet, style:paper, etc).
+//   - Apply the proven text-formatting defaults from the jdlien spec:
+//     Helsinki font, pitchAndFamily=2, size 21.7pt/orgSize 28.8pt,
+//     AUTOLEN text control, autoLF=true, TOP vertical alignment.
+//
+// When the user selects multiple labels we emit each .lbx and bundle
+// them all into a single outer .zip the browser downloads. The user
+// unzips it and can open each label in P-Touch Editor.
 async function generateLabelLbx(){
   const items = countLabelSelection();
   if(!items.length) return;
   try {
-    const files = buildLbxFiles(items);
-    const blob = buildZip(files);
     const stamp = new Date().toISOString().slice(0,10);
     const owner = ((appSettings&&appSettings.owner_name) || 'GRIP').replace(/[^A-Za-z0-9_]/g,'_');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${owner}_Labels_${stamp}.lbx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    toast(`Exported ${items.length} label${items.length!==1?'s':''} as .lbx — open in P-Touch Editor.`);
+
+    // Single item: download the .lbx directly (most users print one
+    // asset at a time; this avoids an unnecessary wrapper ZIP).
+    if(items.length === 1){
+      const lbxBlob = buildSingleLbx(items[0]);
+      const safeId = (items[0].assetId||'label').replace(/[^A-Za-z0-9_\-]/g,'_');
+      triggerDownload(lbxBlob, `${safeId}.lbx`);
+      toast('Exported 1 label as .lbx — open in P-Touch Editor.');
+      closeModal('m-label-print');
+      return;
+    }
+
+    // Multiple: build one .lbx per item, wrap in an outer ZIP.
+    const lbxEntries = items.map(item => {
+      const blob  = buildSingleLbx(item);
+      const safeId = (item.assetId||'label').replace(/[^A-Za-z0-9_\-]/g,'_');
+      return { name: `${safeId}.lbx`, blob };
+    });
+
+    // Convert each blob to bytes for the outer ZIP
+    const entries = await Promise.all(lbxEntries.map(async e => ({
+      name: e.name,
+      data: new Uint8Array(await e.blob.arrayBuffer()),
+    })));
+
+    const wrapper = buildZip(entries);
+    triggerDownload(wrapper, `${owner}_Labels_${stamp}.zip`);
+    toast(`Exported ${items.length} labels as a .zip of .lbx files — extract and open each in P-Touch Editor.`);
     closeModal('m-label-print');
   } catch(e){
     console.error('LBX export failed:', e);
@@ -6412,134 +6446,85 @@ async function generateLabelLbx(){
   }
 }
 
-// ── LBX XML builders ─────────────────────────────────────
-// Brother uses 1pt = 1/72 inch. 18mm tape ≈ 51pt tall.
-// Print area is ~34pt of that (standard Brother "default margin"
-// profile). Labels are 54mm long ≈ 153pt.
-//
-// All offsets are measured from the paper origin (not the print area).
-// We pin the barcode to the left and the text block to the right,
-// with a little vertical slack so text clips cleanly if too long.
-function buildLbxFiles(items){
-  const LABEL_W_PT  = 153;    // 54mm
-  const LABEL_H_PT  = 51;     // 18mm
-  const PRINT_Y_PT  = 8.4;    // Brother default top margin
-  const PRINT_X_PT  = 4.3;    // Brother default left margin
-  const PRINT_W_PT  = LABEL_W_PT - (PRINT_X_PT * 2);
-  const PRINT_H_PT  = LABEL_H_PT - (PRINT_Y_PT * 2);
-
-  const sheets = items.map((item, idx) => buildLabelSheet(item, idx, {
-    LABEL_W_PT, LABEL_H_PT, PRINT_X_PT, PRINT_Y_PT, PRINT_W_PT, PRINT_H_PT
-  })).join('');
-
-  const labelXml =
-`<?xml version="1.0" encoding="UTF-8"?>
-<pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main" xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style" xmlns:text="http://schemas.brother.info/ptouch/2007/lbx/text" xmlns:draw="http://schemas.brother.info/ptouch/2007/lbx/draw" xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image" xmlns:barcode="http://schemas.brother.info/ptouch/2007/lbx/barcode" xmlns:database="http://schemas.brother.info/ptouch/2007/lbx/database" xmlns:table="http://schemas.brother.info/ptouch/2007/lbx/table" version="1.9" generator="GRIP Gear Tracker">
-<pt:body currentSheet="Sheet 1">${sheets}</pt:body>
-</pt:document>`;
-
-  const propXml =
-`<?xml version="1.0" encoding="UTF-8"?>
-<meta xmlns="http://schemas.brother.info/ptouch/2007/lbx/meta" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/">
-<dc:title>GRIP Asset Labels</dc:title>
-<dc:subject></dc:subject>
-<dc:creator>GRIP Gear Tracker</dc:creator>
-<dc:description>Asset barcodes generated from GRIP inventory</dc:description>
-<dcterms:created>${new Date().toISOString()}</dcterms:created>
-<dcterms:modified>${new Date().toISOString()}</dcterms:modified>
-<appName>GRIP Gear Tracker</appName>
-</meta>`;
-
-  return [
-    { name: 'label.xml', data: labelXml },
-    { name: 'prop.xml',  data: propXml  },
-  ];
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
-function buildLabelSheet(item, idx, dim){
-  const name = (item.name||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[s]));
-  const aid  = (item.assetId||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[s]));
-  const nameLen = name.length;
-  const aidLen  = aid.length;
-  const sheetName = `Sheet ${idx + 1}`;
+// Build a single-label .lbx file (ZIP of label.xml + prop.xml).
+function buildSingleLbx(item){
+  const labelXml = buildSingleLabelXml(item);
+  const propXml  = buildPropXml(item);
+  return buildZip([
+    { name: 'label.xml', data: labelXml },
+    { name: 'prop.xml',  data: propXml  },
+  ]);
+}
 
-  // Barcode on left ~45pt wide × 30pt tall
-  const bcX = dim.PRINT_X_PT + 1;
-  const bcY = dim.PRINT_Y_PT + 3;
-  const bcW = 45;
-  const bcH = 30;
+function buildPropXml(item){
+  const title = ((item.name||'Label') + (item.assetId ? ' ['+item.assetId+']' : ''))
+    .replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[s]));
+  const now = new Date().toISOString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<meta xmlns="http://schemas.brother.info/ptouch/2007/lbx/meta" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/">
+<dc:title>${title}</dc:title>
+<dc:subject></dc:subject>
+<dc:creator>GRIP Gear Tracker</dc:creator>
+<dc:description></dc:description>
+<dcterms:created>${now}</dcterms:created>
+<dcterms:modified>${now}</dcterms:modified>
+<appName>GRIP Gear Tracker</appName>
+</meta>`;
+}
 
-  // Text block on right
+// Build a single-label label.xml. Geometry is 18mm tape × 54mm
+// length with Brother-standard 8.4pt / 4.3pt margins (matches the
+// Alecto3-D reference). All attribute orderings and element nesting
+// mirror a saved-from-P-Touch-Editor label byte-for-byte.
+function buildSingleLabelXml(item){
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  const name = esc(item.name||'');
+  const aid  = esc(item.assetId||'');
+  const nameLen = (item.name||'').length;
+  const aidLen  = (item.assetId||'').length;
+
+  // Tape geometry
+  const LABEL_W = 153;   // 54mm
+  const LABEL_H = 51;    // 18mm (tape width)
+  const MAR_L = 4.3;
+  const MAR_T = 8.4;
+  const MAR_R = 4.3;
+  const MAR_B = 8.4;
+  const BG_X = MAR_L;
+  const BG_Y = MAR_T;      // Note: bg x/y are inset within the sheet
+  const BG_W = LABEL_W - MAR_L - MAR_R;
+  const BG_H = LABEL_H - MAR_T - MAR_B;
+
+  // Barcode: 45pt wide × 30pt tall, on the left half
+  const bcX = MAR_L + 2;
+  const bcY = MAR_T + 2;
+  const bcW = 60;
+  const bcH = 32;
+
+  // Text column on the right half
   const txX = bcX + bcW + 2;
-  const txW = dim.LABEL_W_PT - txX - dim.PRINT_X_PT - 1;
-
-  const nameY = dim.PRINT_Y_PT + 2;
-  const nameH = 16;
+  const txW = LABEL_W - txX - MAR_R - 1;
+  const nameY = MAR_T + 2;
+  const nameH = 18;
   const idY   = nameY + nameH + 1;
-  const idH   = 13;
+  const idH   = 14;
 
-  return `<style:sheet name="${sheetName}">
-<style:paper media="0" width="${dim.LABEL_W_PT}pt" height="${dim.LABEL_H_PT}pt" marginLeft="${dim.PRINT_X_PT}pt" marginTop="${dim.PRINT_Y_PT}pt" marginRight="${dim.PRINT_X_PT}pt" marginBottom="${dim.PRINT_Y_PT}pt" orientation="landscape" autoLength="false" monochromeDisplay="true" paperColor="#FFFFFF" paperInk="#000000" split="1" format="" backgroundTheme="0" printerID="0" printerName=""/>
-<style:cutLine regularCut="0pt" freeCut=""/>
-<style:backGround x="${dim.PRINT_X_PT}pt" y="${dim.PRINT_Y_PT}pt" width="${dim.PRINT_W_PT}pt" height="${dim.PRINT_H_PT}pt" brushStyle="NULL" brushId="0" color="#000000" backColor="#FFFFFF"/>
-<pt:objects>
-
-<barcode:barcode>
-<pt:objectStyle x="${bcX}pt" y="${bcY}pt" width="${bcW}pt" height="${bcH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
-<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
-<pt:brush style="NULL" color="#000000" id="0"/>
-<pt:expanded objectName="Barcode${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
-</pt:objectStyle>
-<barcode:barcodeStyle protocol="CODE128" lengths="${aidLen}" zeroFill="false" barWidth="1.0pt" barRatio="1:3" humanReadable="false" humanReadableAlignment="CENTER" checkDigit="true" autoLengths="true" margin="false" sameLengthBar="false" bearerBar="false"/>
-<pt:data>${aid}</pt:data>
-</barcode:barcode>
-
-<text:text>
-<pt:objectStyle x="${txX}pt" y="${nameY}pt" width="${txW}pt" height="${nameH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
-<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
-<pt:brush style="NULL" color="#000000" id="0"/>
-<pt:expanded objectName="Name${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
-</pt:objectStyle>
-<text:ptFontInfo>
-<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
-<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/>
-</text:ptFontInfo>
-<text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/>
-<text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/>
-<text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="10pt" combinedChars="false"/>
-<text:stringItem charLen="${nameLen}">
-<text:ptFontInfo>
-<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
-<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/>
-</text:ptFontInfo>
-</text:stringItem>
-<pt:data>${name}</pt:data>
-</text:text>
-
-<text:text>
-<pt:objectStyle x="${txX}pt" y="${idY}pt" width="${txW}pt" height="${idH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE">
-<pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/>
-<pt:brush style="NULL" color="#000000" id="0"/>
-<pt:expanded objectName="AssetId${idx}" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/>
-</pt:objectStyle>
-<text:ptFontInfo>
-<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
-<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="9pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/>
-</text:ptFontInfo>
-<text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/>
-<text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/>
-<text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="9pt" combinedChars="false"/>
-<text:stringItem charLen="${aidLen}">
-<text:ptFontInfo>
-<text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/>
-<text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="9pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/>
-</text:ptFontInfo>
-</text:stringItem>
-<pt:data>${aid}</pt:data>
-</text:text>
-
-</pt:objects>
-</style:sheet>`;
+  // Build XML. Attribute order matches the Alecto3-D reference
+  // label exactly — P-Touch Editor is known to crash on reordered
+  // attributes in some versions.
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main" xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style" xmlns:text="http://schemas.brother.info/ptouch/2007/lbx/text" xmlns:draw="http://schemas.brother.info/ptouch/2007/lbx/draw" xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image" xmlns:barcode="http://schemas.brother.info/ptouch/2007/lbx/barcode" xmlns:database="http://schemas.brother.info/ptouch/2007/lbx/database" xmlns:table="http://schemas.brother.info/ptouch/2007/lbx/table" version="1.1" generator="GRIP Gear Tracker"><pt:body currentSheet="Sheet 1"><style:sheet name="Sheet 1"><style:paper media="0" width="${LABEL_W}pt" height="${LABEL_H}pt" marginLeft="${MAR_L}pt" marginTop="${MAR_T}pt" marginRight="${MAR_R}pt" marginBottom="${MAR_B}pt" orientation="landscape" autoLength="true" monochromeDisplay="true" paperColor="#FFFFFF" paperInk="#000000" split="1" format="" backgroundTheme="0" printerID="0" printerName=""/><style:cutLine regularCut="0pt" freeCut=""/><style:backGround x="${BG_X}pt" y="${BG_Y}pt" width="${BG_W}pt" height="${BG_H}pt" brushStyle="NULL" brushId="0" color="#000000" backColor="#FFFFFF"/><pt:objects><barcode:barcode><pt:objectStyle x="${bcX}pt" y="${bcY}pt" width="${bcW}pt" height="${bcH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Barcode" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><barcode:barcodeStyle protocol="CODE128" lengths="${aidLen}" zeroFill="false" barWidth="1.2pt" barRatio="1:3" humanReadable="false" humanReadableAlignment="CENTER" checkDigit="true" autoLengths="true" margin="false" sameLengthBar="false" bearerBar="false"/><pt:data>${aid}</pt:data></barcode:barcode><text:text><pt:objectStyle x="${txX}pt" y="${nameY}pt" width="${txW}pt" height="${nameH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="Name" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="12pt" combinedChars="false"/><text:stringItem charLen="${nameLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="12pt" orgSize="28.8pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${name}</pt:data></text:text><text:text><pt:objectStyle x="${txX}pt" y="${idY}pt" width="${txW}pt" height="${idH}pt" backColor="#FFFFFF" ropMode="COPYPEN" angle="0" anchor="TOPLEFT" flip="NONE"><pt:pen style="NULL" widthX="0.5pt" widthY="0.5pt" color="#000000"/><pt:brush style="NULL" color="#000000" id="0"/><pt:expanded objectName="AssetId" ID="0" lock="0" templateMergeTarget="LABELLIST" templateMergeType="NONE" templateMergeID="0" dbMergeFieldStyleName="" linkStatus="NONE" linkID="0"/></pt:objectStyle><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo><text:textControl control="AUTOLEN" clipFrame="false" aspectNormal="true" shrink="true" autoLF="false" avoidImage="false"/><text:textAlign horizontalAlignment="LEFT" verticalAlignment="TOP" inLineAlignment="BASELINE"/><text:textStyle vertical="false" nullBlock="false" charSpace="0" lineSpace="0" orgPoint="10pt" combinedChars="false"/><text:stringItem charLen="${aidLen}"><text:ptFontInfo><text:logFont name="Helsinki" width="0pt" italic="false" weight="700" charSet="0" pitchAndFamily="2"/><text:fontExt effect="NOEFFECT" underline="0" strikeout="0" size="10pt" orgSize="21.7pt" textColor="#000000" textPrintColorNumber="1"/></text:ptFontInfo></text:stringItem><pt:data>${aid}</pt:data></text:text></pt:objects></style:sheet></pt:body></pt:document>`;
 }
 
 // ── Minimal in-browser ZIP writer ────────────────────────
