@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.18.5] - 2026-04-24  _patch_
+
+- Rewrite LBX to match PT Editor's native format so it stops auto-relaying-out our labels
+
 ## [1.18.4] - 2026-04-24  _patch_
 
 - Fix .lbx printable-area padding and barcode-to-text spacing
