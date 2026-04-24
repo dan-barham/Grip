@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.5';
+const GRIP_VERSION = '1.19.6';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5823,7 +5823,7 @@ const _scan = {
   diagTimer: null,
 };
 
-async // Wait for a video element to be ready for frame sampling. Returns
+// Wait for a video element to be ready for frame sampling. Returns
 // when BOTH metadata has loaded (videoWidth known) AND at least one
 // frame has been painted (readyState ≥ 2 HAVE_CURRENT_DATA). Rejects
 // with an Error on timeout, but doesn't throw — callers can still
