@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.0] - 2026-04-24  _minor_
+
+- Add per-item selection mode to Print Labels modal
+
 ## [1.18.6] - 2026-04-24  _patch_
 
 - Inset LBX objects clearly inside margin guide so they don't ride the dotted line

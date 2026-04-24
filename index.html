@@ -1540,6 +1540,66 @@ td.ta .btn+.btn{margin-left:.25rem;}
 }
 .lp-summary strong{color:var(--accent);font-family:var(--mono);}
 
+/* ── Pick-items picker (mode='selected') ── */
+.lp-pick-search{
+  width:100%;padding:.5rem .65rem;font-size:.85rem;
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;
+  margin-bottom:.5rem;
+}
+.lp-pick-search:focus{
+  outline:none;border-color:var(--accent);
+  background:var(--surface2);
+}
+.lp-pick-actions{
+  display:flex;gap:.5rem;align-items:center;
+  margin-bottom:.5rem;font-size:.78rem;color:var(--text3);
+}
+.lp-pick-actions button{
+  background:none;border:1px solid var(--border);border-radius:4px;
+  padding:.25rem .55rem;font-size:.75rem;color:var(--text2);cursor:pointer;
+}
+.lp-pick-actions button:hover{ background:var(--surface2);color:var(--text); }
+.lp-pick-actions .sep{ flex:1; }
+.lp-pick-list{
+  max-height:320px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);margin-bottom:1rem;
+}
+.lp-pick-grouphead{
+  position:sticky;top:0;z-index:1;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.4rem .7rem;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  font-size:.78rem;font-weight:600;color:var(--text2);
+  cursor:pointer;user-select:none;
+}
+.lp-pick-grouphead .cat-dot{ width:8px;height:8px;border-radius:50%; }
+.lp-pick-grouphead-name{ flex:1; }
+.lp-pick-grouphead-n{
+  font-family:var(--mono);font-size:.72rem;color:var(--text3);
+  padding:.1rem .4rem;background:var(--surface2);border-radius:8px;
+}
+.lp-pick-grouphead input[type=checkbox]{ accent-color:var(--accent);margin:0; }
+.lp-pick-row{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.35rem .7rem .35rem 1.8rem;
+  font-size:.84rem;color:var(--text2);cursor:pointer;
+  border-bottom:1px solid transparent;
+}
+.lp-pick-row:hover{ background:var(--surface); }
+.lp-pick-row.on{ color:var(--text); }
+.lp-pick-row input[type=checkbox]{ accent-color:var(--accent);margin:0;flex-shrink:0; }
+.lp-pick-row-name{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.lp-pick-row-id{
+  font-family:var(--mono);font-size:.72rem;color:var(--text3);
+  padding:.1rem .4rem;background:var(--surface);border-radius:3px;
+}
+.lp-pick-empty{
+  padding:1.5rem;text-align:center;
+  color:var(--text3);font-size:.85rem;font-style:italic;
+}
+
 
 /* ── JOB RAIL SECTIONS ── */
 .rail-section-head{
@@ -3162,7 +3222,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
         <div class="topbar">
           <div class="topbar-title">Master Inventory</div>
           <button class="btn btn-accent btn-sm" onclick="resetInvModal();openModal('m-inv-add')">+ Add Item</button>
-          <button class="btn btn-ghost btn-sm" onclick="openLabelPrint()" title="Print barcode labels">🏷️ Print Labels</button>
+          <button class="btn btn-ghost btn-sm" onclick="openLabelPrintFromInventory()" title="Print barcode labels">🏷️ Print Labels</button>
           <input type="text" class="search" id="inv-search" placeholder="Search name, asset ID, notes…" style="max-width:220px" oninput="renderInventoryView()">
         </div>
         <div class="inv-summary" id="inv-summary"></div>
@@ -4032,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.18.6';
+const GRIP_VERSION = '1.19.0';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6156,21 +6216,77 @@ function escHtml(s){
 // The filter modal lets the user pick a subset by category or use the
 // inventory search box's current filter.
 
+// Selection state shared across renders of the label picker modal.
+//   mode      — 'all' | 'cat' | 'selected'
+//   cats      — Set of category names (mode='cat')
+//   ids       — Set of inventory item IDs (mode='selected'). Persists
+//               across mode switches so the user doesn't lose work.
+//   search    — current filter text for the pick-items list
+//   collapsed — Set of category group names that are collapsed
+//
+// Pre-populated items (e.g. passed from the inventory view's own
+// multi-select) are handled by openLabelPrint(preselectedIds).
 let _labelSelection = {
-  mode: 'all',     // 'all' | 'cat' | 'selected'
-  cats: new Set(), // when mode='cat'
+  mode: 'all',
+  cats: new Set(),
+  ids: new Set(),
+  search: '',
+  collapsed: new Set(),
 };
 
-function openLabelPrint(){
+function openLabelPrint(preselectedIds){
   const items = (S.inventory||[]).filter(i => (i.assetId||'').trim());
   if(!items.length){
     toast('No inventory items have Asset IDs yet. Add some first.');
     return;
   }
-  // Reset selection state each time
-  _labelSelection = {mode:'all', cats:new Set()};
+  // Reset selection state each time. If caller passed preselected IDs
+  // (e.g. from the inventory view's checkbox multi-select), start in
+  // 'selected' mode with those IDs pre-ticked.
+  const pre = (preselectedIds instanceof Set) ? new Set(preselectedIds)
+            : Array.isArray(preselectedIds) ? new Set(preselectedIds)
+            : new Set();
+  // Filter preselected IDs to ones that actually have an asset ID
+  const validPre = new Set([...pre].filter(id =>
+    items.some(i => i.id === id)));
+  _labelSelection = {
+    mode:     validPre.size ? 'selected' : 'all',
+    cats:     new Set(),
+    ids:      validPre,
+    search:   '',
+    collapsed: new Set(),
+  };
   renderLabelPicker();
   openModal('m-label-print');
+  // After the DOM settles, ensure any tri-state group checkboxes show
+  // their indeterminate state.
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+// Invoked from the inventory view's "🏷️ Print Labels" button.
+// If the user has narrowed the inventory by category or search, use
+// that narrowed set as the initial selection so "print labels for the
+// stuff I'm looking at" works in one click. If they're viewing the
+// full inventory with no filters, fall through to the default (mode
+// 'all', no pre-selection).
+function openLabelPrintFromInventory(){
+  const invFiltered = (S.inventory||[]).filter(i => (i.assetId||'').trim());
+  const q = (document.getElementById('inv-search')?.value||'').toLowerCase().trim();
+  const catFilter = typeof invCatFilter !== 'undefined' ? invCatFilter : 'All';
+  const hasFilter = q.length > 0 || (catFilter && catFilter !== 'All');
+  if(!hasFilter){
+    return openLabelPrint();
+  }
+  const visible = invFiltered.filter(i => {
+    const catOk = catFilter==='All' || i.cat===catFilter;
+    const qOk = !q
+      || i.name.toLowerCase().includes(q)
+      || (i.assetId||'').toLowerCase().includes(q)
+      || (i.notes||'').toLowerCase().includes(q)
+      || (i.cat||'').toLowerCase().includes(q);
+    return catOk && qOk;
+  });
+  return openLabelPrint(visible.map(i => i.id));
 }
 
 function renderLabelPicker(){
@@ -6181,16 +6297,22 @@ function renderLabelPicker(){
   all.forEach(i => { (byCat[i.cat||'Other'] = byCat[i.cat||'Other'] || []).push(i); });
   const cats = Object.keys(byCat).sort();
   const selectedCount = countLabelSelection().length;
+  const escAttr = s => String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   host.innerHTML = `
     <div class="lp-mode-row">
       <label class="lp-mode ${_labelSelection.mode==='all'?'active':''}">
         <input type="radio" name="lp-mode" value="all" ${_labelSelection.mode==='all'?'checked':''} onchange="setLabelMode('all')">
-        <span>All items with asset IDs <span class="lp-n">${all.length}</span></span>
+        <span>All <span class="lp-n">${all.length}</span></span>
       </label>
       <label class="lp-mode ${_labelSelection.mode==='cat'?'active':''}">
         <input type="radio" name="lp-mode" value="cat" ${_labelSelection.mode==='cat'?'checked':''} onchange="setLabelMode('cat')">
         <span>By category</span>
+      </label>
+      <label class="lp-mode ${_labelSelection.mode==='selected'?'active':''}">
+        <input type="radio" name="lp-mode" value="selected" ${_labelSelection.mode==='selected'?'checked':''} onchange="setLabelMode('selected')">
+        <span>Pick items ${_labelSelection.ids.size ? `<span class="lp-n">${_labelSelection.ids.size}</span>` : ''}</span>
       </label>
     </div>
     ${_labelSelection.mode==='cat'?`
@@ -6206,6 +6328,7 @@ function renderLabelPicker(){
         }).join('')}
       </div>
     `:''}
+    ${_labelSelection.mode==='selected' ? renderLabelPickItems(all, byCat, cats, escAttr) : ''}
     <div class="lp-summary">
       <strong>${selectedCount}</strong> label${selectedCount!==1?'s':''} will be generated
     </div>
@@ -6215,16 +6338,176 @@ function renderLabelPicker(){
   const exportBtn = document.getElementById('lp-btn-export');
   if(printBtn)  printBtn.disabled  = selectedCount===0;
   if(exportBtn) exportBtn.disabled = selectedCount===0;
+
+  // Restore focus to the search input after a re-render (otherwise
+  // each keystroke would steal focus because we rebuild innerHTML).
+  if(_labelSelection.mode==='selected'){
+    const searchEl = document.getElementById('lp-pick-search');
+    if(searchEl && _labelSelection._focusSearch){
+      searchEl.focus();
+      // Move caret to end
+      const v = searchEl.value;
+      searchEl.setSelectionRange(v.length, v.length);
+      _labelSelection._focusSearch = false;
+    }
+  }
+}
+
+// Render the "Pick items" picker body: search box + quick actions +
+// grouped list of items with checkboxes. Grouping by category matches
+// the category-rail metaphor from the inventory view so users find
+// what they want quickly.
+function renderLabelPickItems(all, byCat, cats, escAttr){
+  const q = (_labelSelection.search||'').toLowerCase().trim();
+  const matches = item => !q
+    || (item.name||'').toLowerCase().includes(q)
+    || (item.assetId||'').toLowerCase().includes(q)
+    || (item.cat||'').toLowerCase().includes(q)
+    || (item.notes||'').toLowerCase().includes(q);
+
+  // Filter + re-group
+  const filtered = all.filter(matches);
+  const filteredByCat = {};
+  filtered.forEach(i => {
+    (filteredByCat[i.cat||'Other'] = filteredByCat[i.cat||'Other'] || []).push(i);
+  });
+  const filteredCats = Object.keys(filteredByCat).sort();
+  const visibleIds = new Set(filtered.map(i => i.id));
+  const visibleSelectedCount = filtered.filter(i => _labelSelection.ids.has(i.id)).length;
+  const allVisibleSelected = filtered.length>0 && visibleSelectedCount===filtered.length;
+
+  let listHtml = '';
+  if(!filteredCats.length){
+    listHtml = `<div class="lp-pick-empty">No items match “${escHtml(_labelSelection.search)}”.</div>`;
+  } else {
+    listHtml = filteredCats.map(c => {
+      const groupItems = filteredByCat[c];
+      const selectedInGroup = groupItems.filter(i => _labelSelection.ids.has(i.id)).length;
+      const allChecked  = selectedInGroup===groupItems.length;
+      const someChecked = selectedInGroup>0 && !allChecked;
+      const collapsed = _labelSelection.collapsed.has(c);
+      const headId = `lp-grouphead-${c.replace(/[^\w]/g,'_')}`;
+      const rowsHtml = collapsed ? '' : groupItems.map(item => {
+        const checked = _labelSelection.ids.has(item.id);
+        return `<label class="lp-pick-row ${checked?'on':''}">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleLabelItemId('${item.id}')">
+          <span class="lp-pick-row-name" title="${escAttr(item.name)}">${escHtml(item.name)}</span>
+          <span class="lp-pick-row-id">${escHtml(item.assetId)}</span>
+        </label>`;
+      }).join('');
+      return `
+        <div class="lp-pick-grouphead" onclick="toggleLabelGroup('${c.replace(/'/g,"\\'")}')">
+          <input type="checkbox" id="${headId}"
+            ${allChecked?'checked':''} ${someChecked?'data-indet="1"':''}
+            onclick="event.stopPropagation()" onchange="toggleLabelCatIds('${c.replace(/'/g,"\\'")}')">
+          <span class="cat-dot cat-${c}"></span>
+          <span class="lp-pick-grouphead-name">${escHtml(c)} ${collapsed?'▸':'▾'}</span>
+          <span class="lp-pick-grouphead-n">${selectedInGroup}/${groupItems.length}</span>
+        </div>
+        ${rowsHtml}
+      `;
+    }).join('');
+  }
+
+  // Pass pre-escaped search value as a safe attribute
+  return `
+    <input type="text" class="lp-pick-search" id="lp-pick-search"
+           placeholder="Search name, asset ID, category, notes…"
+           value="${escAttr(_labelSelection.search)}"
+           oninput="setLabelSearch(this.value)">
+    <div class="lp-pick-actions">
+      <button type="button" onclick="selectAllVisibleLabels()" title="Select all items matching the current search">
+        ${allVisibleSelected && filtered.length ? 'Deselect' : 'Select'} all${q?' visible':''} (${filtered.length})
+      </button>
+      <button type="button" onclick="clearLabelSelection()" ${_labelSelection.ids.size===0?'disabled':''}>Clear selection</button>
+      <span class="sep"></span>
+      <span><strong style="color:var(--accent);font-family:var(--mono)">${_labelSelection.ids.size}</strong> selected</span>
+    </div>
+    <div class="lp-pick-list">${listHtml}</div>
+  `;
+}
+
+function setLabelSearch(v){
+  _labelSelection.search = v;
+  _labelSelection._focusSearch = true;
+  renderLabelPicker();
+  // Apply indeterminate state to group-head checkboxes after render
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+// Indeterminate state isn't settable via HTML attribute — only via JS.
+// We mark group heads with data-indet="1" at render time and apply
+// the flag here after the DOM has updated.
+function applyLabelCatIndeterminate(){
+  document.querySelectorAll('.lp-pick-grouphead input[type=checkbox]').forEach(cb => {
+    cb.indeterminate = cb.hasAttribute('data-indet');
+  });
+}
+
+function toggleLabelItemId(id){
+  if(_labelSelection.ids.has(id)) _labelSelection.ids.delete(id);
+  else _labelSelection.ids.add(id);
+  renderLabelPicker();
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+// Toggle all items in a category: if all are already selected, clear
+// the whole category; otherwise select every item in it. Matches the
+// behaviour of "select all" checkboxes on every other table in the app.
+function toggleLabelCatIds(cat){
+  const all = (S.inventory||[]).filter(i => (i.assetId||'').trim() && (i.cat||'Other')===cat);
+  const allChecked = all.every(i => _labelSelection.ids.has(i.id));
+  if(allChecked) all.forEach(i => _labelSelection.ids.delete(i.id));
+  else           all.forEach(i => _labelSelection.ids.add(i.id));
+  renderLabelPicker();
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+function toggleLabelGroup(cat){
+  if(_labelSelection.collapsed.has(cat)) _labelSelection.collapsed.delete(cat);
+  else _labelSelection.collapsed.add(cat);
+  renderLabelPicker();
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+// "Select/Deselect all visible" — toggles based on current search
+// filter, not the entire inventory. Lets users narrow to "tripod" and
+// select every matching item in one click.
+function selectAllVisibleLabels(){
+  const q = (_labelSelection.search||'').toLowerCase().trim();
+  const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
+  const matches = item => !q
+    || (item.name||'').toLowerCase().includes(q)
+    || (item.assetId||'').toLowerCase().includes(q)
+    || (item.cat||'').toLowerCase().includes(q)
+    || (item.notes||'').toLowerCase().includes(q);
+  const visible = all.filter(matches);
+  const allChecked = visible.length>0 && visible.every(i => _labelSelection.ids.has(i.id));
+  if(allChecked) visible.forEach(i => _labelSelection.ids.delete(i.id));
+  else           visible.forEach(i => _labelSelection.ids.add(i.id));
+  renderLabelPicker();
+  requestAnimationFrame(applyLabelCatIndeterminate);
+}
+
+function clearLabelSelection(){
+  _labelSelection.ids.clear();
+  renderLabelPicker();
 }
 
 function setLabelMode(m){
   _labelSelection.mode = m;
-  // When switching into "cat" mode, pre-check all cats for convenience
+  // When switching into 'cat' mode the first time, pre-check all
+  // categories for convenience — starting with nothing selected would
+  // show "0 labels" and confuse most users.
   if(m==='cat' && _labelSelection.cats.size===0){
     const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
     new Set(all.map(i=>i.cat||'Other')).forEach(c=>_labelSelection.cats.add(c));
   }
+  // 'selected' mode intentionally does NOT auto-pick anything — the
+  // whole point is for the user to choose. Selection persists across
+  // mode switches so they don't lose in-flight picks.
   renderLabelPicker();
+  requestAnimationFrame(applyLabelCatIndeterminate);
 }
 
 function toggleLabelCat(c){
@@ -6235,9 +6518,9 @@ function toggleLabelCat(c){
 
 function countLabelSelection(){
   const all = (S.inventory||[]).filter(i => (i.assetId||'').trim());
-  if(_labelSelection.mode === 'all') return all;
-  if(_labelSelection.mode === 'cat')
-    return all.filter(i => _labelSelection.cats.has(i.cat||'Other'));
+  if(_labelSelection.mode === 'all')      return all;
+  if(_labelSelection.mode === 'cat')      return all.filter(i => _labelSelection.cats.has(i.cat||'Other'));
+  if(_labelSelection.mode === 'selected') return all.filter(i => _labelSelection.ids.has(i.id));
   return all;
 }
 
