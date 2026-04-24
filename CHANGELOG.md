@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.3] - 2026-04-24  _patch_
+
+- Fix mobile scanner not decoding: skip broken native detector + add watchdog
+
 ## [1.19.2] - 2026-04-24  _patch_
 
 - Tune LBX vertical bias, preserve picker scroll on check

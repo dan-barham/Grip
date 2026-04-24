@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.2';
+const GRIP_VERSION = '1.19.3';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5811,6 +5811,12 @@ const _scan = {
   dedupWindowMs: 1800,// ignore duplicate reads within this window
   log: [],            // [{when, asset_id, result:'in'|'out'|'err', name?, error?}]
   open: false,
+  // Frames the native detector has seen with readyState ≥ 2, and the
+  // time (performance.now()) when the first such frame was processed.
+  // Used by the watchdog to decide when to auto-fall-back to ZXing.
+  // Reset on each open.
+  framesScanned: 0,
+  firstFrameAt:  0,
 };
 
 async function openBarcodeScanner(){
@@ -5824,6 +5830,8 @@ async function openBarcodeScanner(){
   ov.classList.add('open');
   _scan.open = true;
   _scan.log = [];
+  _scan.framesScanned = 0;
+  _scan.firstFrameAt  = 0;
   renderScanLog();
 
   // Update day label chip
@@ -5870,12 +5878,26 @@ async function openBarcodeScanner(){
 
     // Pick a decoder backend:
     //   1. Native BarcodeDetector if present AND supports useful 1D formats
-    //      (macOS + Android Chrome/Edge, iOS Safari 17+).
+    //      AND we're not on a platform where it's known to claim support
+    //      for CODE_128 but return empty on every frame (Android Chrome).
+    //      iOS Safari 17+ and macOS Chrome/Edge both work fine natively.
     //   2. ZXing-js via jsdelivr as lazy-loaded fallback everywhere else
-    //      (desktop Linux/Windows Chrome, all Firefox, older Safari).
+    //      (Android, desktop Linux/Windows Chrome, all Firefox, older Safari).
     //   3. Manual input + keyboard-wedge remain available regardless.
+    //
+    // Android Chrome's BarcodeDetector getSupportedFormats() lists
+    // code_128 but the implementation (backed by ML Kit) rarely
+    // decodes 1D in realistic conditions. Rather than let users sit
+    // in front of a 'nothing happens' camera for 4 seconds before
+    // the watchdog kicks in, we skip native entirely on that
+    // platform. The watchdog below still handles other surprises.
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isChromium = /Chrome|CriOS|Chromium/i.test(ua) && !/Edg/i.test(ua);
+    const nativeKnownBad = isAndroid && isChromium;
+
     let started = false;
-    if('BarcodeDetector' in window){
+    if('BarcodeDetector' in window && !nativeKnownBad){
       try {
         const formats = await window.BarcodeDetector.getSupportedFormats();
         const want = ['code_128','code_39','ean_13','ean_8','qr_code','itf','upc_a','upc_e'];
@@ -5998,14 +6020,50 @@ function scanLoop(){
     _scan.rafId = requestAnimationFrame(scanLoop);
     return;
   }
+  // Start the watchdog clock the first time we see a decodable frame.
+  if(!_scan.firstFrameAt) _scan.firstFrameAt = performance.now();
+
   _scan.detector.detect(video).then(codes => {
+    _scan.framesScanned++;
     if(codes && codes.length){
       // Take the largest (usually the most centred / biggest on screen)
       codes.sort((a,b)=> (b.boundingBox?.width||0) - (a.boundingBox?.width||0));
       handleScannedCode(codes[0].rawValue);
+      return;
+    }
+    // ── Watchdog ──────────────────────────────────────────
+    // Mobile Chrome's BarcodeDetector reports CODE_128 as supported
+    // but in practice often returns empty arrays frame after frame,
+    // silently. If we've been scanning for 4+ seconds with 60+ frames
+    // processed and zero hits, assume native is broken and fall back
+    // to ZXing. 4s is long enough for the user to have actually
+    // brought a barcode into frame at least briefly; 60 frames is
+    // long enough that "nothing in view" becomes statistically
+    // unlikely on a phone the user is actively pointing at labels.
+    // We don't need both thresholds strictly, but requiring both
+    // avoids flapping on slow-start cameras.
+    const elapsed = performance.now() - _scan.firstFrameAt;
+    if(_scan.backend === 'native'
+       && elapsed > 4000 && _scan.framesScanned > 60){
+      console.info('Native BarcodeDetector watchdog: '
+        + _scan.framesScanned + ' frames in '
+        + Math.round(elapsed) + 'ms, zero decodes — falling back to ZXing');
+      _scan.detector = null;  // stops scanLoop's next iteration
+      setScanStatus('Native scanner not decoding — switching engines…', '');
+      loadZXing().then(() => {
+        startZXingScan();
+        _scan.backend = 'zxing';
+        setScanStatus('Scanning…', '');
+      }).catch(e => {
+        console.warn('ZXing fallback load failed:', e);
+        setScanStatus('Scanner engines unavailable — use the manual input below.', '');
+      });
+      return;  // do NOT schedule next frame; the .finally() block
+               // checks _scan.detector and will short-circuit
     }
   }).catch(e => {
-    // Some browsers throw transient decode errors — swallow and continue.
+    // Transient decode errors are normal — some frames aren't
+    // decodable. Log at debug so they don't spam the console.
     console.debug('detect err', e);
   }).finally(() => {
     if(_scan.open && _scan.detector){
