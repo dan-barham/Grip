@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.5] - 2026-04-24  _patch_
+
+- Wait for video metadata before decoding + diagnostic timer
+
 ## [1.19.4] - 2026-04-24  _patch_
 
 - Switch ZXing to decodeFromStream, fixing silent-no-decode on mobile

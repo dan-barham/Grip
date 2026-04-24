@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.4';
+const GRIP_VERSION = '1.19.5';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5817,7 +5817,53 @@ const _scan = {
   // Reset on each open.
   framesScanned: 0,
   firstFrameAt:  0,
+  // Diagnostic timer: fires 6s after scanner opens if no barcode has
+  // been decoded yet. Updates the status text with video dimensions
+  // so the user can tell whether the camera is even producing frames.
+  diagTimer: null,
 };
+
+async // Wait for a video element to be ready for frame sampling. Returns
+// when BOTH metadata has loaded (videoWidth known) AND at least one
+// frame has been painted (readyState ≥ 2 HAVE_CURRENT_DATA). Rejects
+// with an Error on timeout, but doesn't throw — callers can still
+// proceed and let the decoder backend fail-soft if desired.
+//
+// This is needed mostly for iOS (Safari + WKWebView-based Firefox,
+// Chrome, Edge): the getUserMedia permission prompt breaks the user-
+// gesture chain, after which play() resolves without actually
+// starting frame delivery. Waiting on loadedmetadata guarantees we
+// don't hand a 0×0 video to a decoder that'll silently sample
+// nothing.
+function waitForVideoReady(video, timeoutMs){
+  return new Promise((resolve) => {
+    if(video.readyState >= 2 && video.videoWidth > 0){
+      return resolve();
+    }
+    let done = false;
+    const finish = () => {
+      if(done) return;
+      done = true;
+      video.removeEventListener('loadedmetadata', onReady);
+      video.removeEventListener('loadeddata',     onReady);
+      video.removeEventListener('playing',        onReady);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onReady = () => {
+      if(video.readyState >= 2 && video.videoWidth > 0) finish();
+    };
+    video.addEventListener('loadedmetadata', onReady);
+    video.addEventListener('loadeddata',     onReady);
+    video.addEventListener('playing',        onReady);
+    const timer = setTimeout(() => {
+      console.warn('video ready timeout —',
+        'readyState=', video.readyState,
+        'videoWidth=', video.videoWidth);
+      finish();
+    }, timeoutMs);
+  });
+}
 
 async function openBarcodeScanner(){
   // Requires an active day to toggle against — if not, bail with a hint.
@@ -5832,6 +5878,7 @@ async function openBarcodeScanner(){
   _scan.log = [];
   _scan.framesScanned = 0;
   _scan.firstFrameAt  = 0;
+  if(_scan.diagTimer){ clearTimeout(_scan.diagTimer); _scan.diagTimer = null; }
   renderScanLog();
 
   // Update day label chip
@@ -5873,16 +5920,55 @@ async function openBarcodeScanner(){
       audio: false,
     });
     const video = document.getElementById('scan-video');
+
+    // iOS 26 Safari/Firefox (and anything using WKWebView) requires
+    // three things to play inline video from a MediaStream:
+    //   1. <video playsinline muted autoplay> attributes (set in HTML)
+    //   2. srcObject (not src) pointing at the stream
+    //   3. video.play() called in a context 'close to' a user gesture
+    //
+    // Because we already await getUserMedia (which has a permission
+    // prompt that breaks the user-gesture chain), iOS sometimes
+    // refuses to start actual frame playback even though play()
+    // resolves. The symptom is video.videoWidth === 0 forever, and
+    // the decoder sees no frames to sample. The fix is to wait for
+    // loadedmetadata (which guarantees videoWidth is known) AND for
+    // the first actual frame to arrive (readyState >= 2) before we
+    // hand the video to any decoder backend. On iOS specifically,
+    // we also re-call play() after loadedmetadata if needed.
     video.srcObject = _scan.stream;
-    await video.play().catch(()=>{});
+
+    // Ensure the required attributes are set at the DOM level —
+    // iOS looks at these at play time, and static HTML attributes
+    // can be stripped by overly-aggressive sanitizers.
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
+    video.muted = true;           // also set the property (iOS needs both)
+    video.setAttribute('autoplay', '');
+
+    // Wait for the stream's metadata. Cap the wait at 4s so a broken
+    // stream doesn't hang the UI forever; at 4s we still proceed but
+    // the decoder will likely fail to sample, at which point the
+    // user sees 'no barcode' which is better than a dead screen.
+    await waitForVideoReady(video, 4000);
+
+    // Kick playback. On iOS the first play() often resolves without
+    // actually starting frame delivery — we retry once after a tick
+    // if videoWidth is still 0.
+    try { await video.play(); } catch(e){ /* may still play via autoplay */ }
+    if(!video.videoWidth){
+      await new Promise(r => setTimeout(r, 150));
+      try { await video.play(); } catch(e){}
+    }
 
     // Pick a decoder backend:
     //   1. Native BarcodeDetector if present AND supports useful 1D formats
     //      AND we're not on a platform where it's known to claim support
     //      for CODE_128 but return empty on every frame (Android Chrome).
-    //      iOS Safari 17+ and macOS Chrome/Edge both work fine natively.
+    //      iOS Safari 26.x has the API DISABLED BY DEFAULT so this branch
+    //      naturally skips itself there and falls through to ZXing.
     //   2. ZXing-js via jsdelivr as lazy-loaded fallback everywhere else
-    //      (Android, desktop Linux/Windows Chrome, all Firefox, older Safari).
+    //      (Android, iOS, desktop Linux/Windows Chrome, all Firefox, older Safari).
     //   3. Manual input + keyboard-wedge remain available regardless.
     //
     // Android Chrome's BarcodeDetector getSupportedFormats() lists
@@ -5920,8 +6006,25 @@ async function openBarcodeScanner(){
         await loadZXing();
         startZXingScan();
         _scan.backend = 'zxing';
-        setScanStatus('Scanning…', '');
+        setScanStatus('Scanning… ('+video.videoWidth+'×'+video.videoHeight+')', '');
         started = true;
+        // Diagnostic ticker: if nothing's been decoded after ~6s,
+        // surface the video dimensions and a hint so the user knows
+        // whether the issue is 'camera dead' vs 'decoder silent'.
+        // Cleared on first successful decode (see handleScannedCode).
+        _scan.diagTimer = setTimeout(() => {
+          if(!_scan.open || _scan.lastCode) return;
+          const dims = (video.videoWidth||'?') + '×' + (video.videoHeight||'?');
+          if(!video.videoWidth || video.readyState < 2){
+            setScanStatus(
+              'Camera not producing frames ('+dims+' rs='+video.readyState+'). '
+              + 'Close and reopen, or use the manual input below.', '');
+          } else {
+            setScanStatus(
+              'Scanning '+dims+' — no barcode detected yet. '
+              + 'Hold steadier, improve lighting, or type the code.', '');
+          }
+        }, 6000);
       } catch(e){
         console.warn('ZXing load failed:', e);
         setScanStatus('Could not load scanner engine. Check your internet connection or use the manual input below.', '');
@@ -5985,26 +6088,27 @@ function startZXingScan(){
 
     // IMPORTANT: the right method for continuous scanning depends on
     // what the @zxing/library build actually exposes, and on whether
-    // we have a pre-acquired stream (which we do — see openBarcodeScanner).
-    // Preference order, tuned against real-world failure reports on
-    // mobile Chromium:
+    // the video is already playing with a known resolution (which it
+    // now is — openBarcodeScanner awaits waitForVideoReady before
+    // getting here). Preference order:
     //
-    //   1. decodeFromStream(stream, videoEl, cb)
-    //      — ZXing takes ownership of the MediaStream, attaches it to
-    //        the video element itself, and manages the play lifecycle.
-    //        This sidesteps the class of bugs where we've already
-    //        attached the stream and called play(), and ZXing's
-    //        internal 'playing' event listener misses the transition
-    //        so it never starts sampling frames.
+    //   1. decodeFromVideoElementContinuously(videoEl, cb)
+    //      — uses the ALREADY-playing video element. We've just
+    //        verified videoWidth > 0 and readyState >= 2, so ZXing
+    //        can start sampling immediately without waiting for any
+    //        lifecycle events.
     //
-    //   2. decodeFromVideoElementContinuously(videoEl, cb)
-    //      — fallback for builds missing decodeFromStream.
+    //   2. decodeFromStream(stream, videoEl, cb)
+    //      — re-attaches the stream. Works but on iOS can reset
+    //        playback and leave videoWidth at 0 again. Kept as a
+    //        fallback for older ZXing builds that don't export the
+    //        Continuously variant.
     //
     //   3. decodeFromVideoElement(videoEl, cb)
-    //      — last resort. The non-'Continuously' version does a SINGLE
-    //        decode attempt and ignores the callback arg. Was the
-    //        original code path — explains the 'camera loads, nothing
-    //        decodes' report: no error, no scanning, just silence.
+    //      — last resort. The non-'Continuously' version does a
+    //        SINGLE decode attempt and ignores the callback arg. If
+    //        this is the only method available the library is too
+    //        old for reliable continuous scanning.
     const cb = (result, err) => {
       if(result){
         handleScannedCode(result.getText());
@@ -6018,12 +6122,12 @@ function startZXingScan(){
     let startedFn = null;
     let promise = null;
     try {
-      if(typeof _scan.zxReader.decodeFromStream === 'function' && _scan.stream){
-        startedFn = 'decodeFromStream';
-        promise = _scan.zxReader.decodeFromStream(_scan.stream, video, cb);
-      } else if(typeof _scan.zxReader.decodeFromVideoElementContinuously === 'function'){
+      if(typeof _scan.zxReader.decodeFromVideoElementContinuously === 'function'){
         startedFn = 'decodeFromVideoElementContinuously';
         promise = _scan.zxReader.decodeFromVideoElementContinuously(video, cb);
+      } else if(typeof _scan.zxReader.decodeFromStream === 'function' && _scan.stream){
+        startedFn = 'decodeFromStream';
+        promise = _scan.zxReader.decodeFromStream(_scan.stream, video, cb);
       } else {
         startedFn = 'decodeFromVideoElement';
         promise = _scan.zxReader.decodeFromVideoElement(video, cb);
@@ -6044,7 +6148,9 @@ function startZXingScan(){
         }
       });
     }
-    console.info('ZXing started via', startedFn);
+    console.info('ZXing started via', startedFn,
+      'video', video.videoWidth + 'x' + video.videoHeight,
+      'readyState=', video.readyState);
   } catch(e){
     console.warn('ZXing start failed:', e);
     setScanStatus('Scanner engine failed to start. Use the manual input.', '');
@@ -6056,6 +6162,7 @@ function closeBarcodeScanner(){
   ov.classList.remove('open');
   _scan.open = false;
   if(_scan.rafId){ cancelAnimationFrame(_scan.rafId); _scan.rafId=null; }
+  if(_scan.diagTimer){ clearTimeout(_scan.diagTimer); _scan.diagTimer=null; }
   if(_scan.zxReader){
     try { _scan.zxReader.reset(); } catch(e){}
     _scan.zxReader = null;
@@ -6140,6 +6247,9 @@ function handleScannedCode(raw){
   if(code === _scan.lastCode && (now - _scan.lastCodeAt) < _scan.dedupWindowMs) return;
   _scan.lastCode = code;
   _scan.lastCodeAt = now;
+  // First real decode — cancel the 6s "no decode yet" diagnostic so
+  // we don't overwrite the happy status with a warning later.
+  if(_scan.diagTimer){ clearTimeout(_scan.diagTimer); _scan.diagTimer=null; }
   processScan(code);
 }
 
