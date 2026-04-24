@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.6';
+const GRIP_VERSION = '1.19.7';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5821,6 +5821,10 @@ const _scan = {
   // been decoded yet. Updates the status text with video dimensions
   // so the user can tell whether the camera is even producing frames.
   diagTimer: null,
+  // Reticle-crop scan loop timer — parallel path that decodes just
+  // the central strip of the frame at full resolution. See
+  // startReticleDecodeLoop for rationale.
+  reticleTimer: null,
 };
 
 // Wait for a video element to be ready for frame sampling. Returns
@@ -5879,6 +5883,7 @@ async function openBarcodeScanner(){
   _scan.framesScanned = 0;
   _scan.firstFrameAt  = 0;
   if(_scan.diagTimer){ clearTimeout(_scan.diagTimer); _scan.diagTimer = null; }
+  if(_scan.reticleTimer){ clearTimeout(_scan.reticleTimer); _scan.reticleTimer = null; }
   renderScanLog();
 
   // Update day label chip
@@ -6148,6 +6153,26 @@ function startZXingScan(){
         }
       });
     }
+
+    // ── Parallel reticle-crop decode loop ─────────────────
+    // The "Continuously" path above samples the entire video frame
+    // at ZXing's default scale. On a 1280×720 phone frame with a
+    // barcode filling maybe 15-25% of the horizontal, the bars end
+    // up at ~20-40 pixels wide for the narrowest module — right at
+    // ZXing's decode threshold, especially on yellow TZe tape where
+    // the camera's auto-exposure clips the background toward white.
+    //
+    // This second path crops the video to roughly the reticle area,
+    // pastes it at full resolution into a canvas, and asks ZXing to
+    // decode THAT. The cropped region covers ~60% of the frame
+    // width, so bars come out at ~60-100 pixels for the narrowest
+    // module — well above the decode threshold.
+    //
+    // Runs in parallel with the full-frame path: first successful
+    // decode wins (handleScannedCode's dedup window prevents double-
+    // fire). No downside if it doesn't find anything — the original
+    // path keeps running.
+    startReticleDecodeLoop(video, ZX);
     console.info('ZXing started via', startedFn,
       'video', video.videoWidth + 'x' + video.videoHeight,
       'readyState=', video.readyState);
@@ -6157,12 +6182,80 @@ function startZXingScan(){
   }
 }
 
+// Parallel scan path: every 200ms, crop the central strip of the
+// current video frame to a canvas and ask ZXing to decode just that.
+// Effectively doubles the pixels-per-bar for small barcodes by
+// trading away periphery the user wasn't aiming at anyway.
+//
+// We intentionally do NOT match the on-screen reticle dimensions
+// exactly — the reticle is a framing hint for the user, not a hard
+// boundary. We crop a wider central strip (80% width × 45% height,
+// centred) so minor aim errors still hit the crop region. 1D bars
+// stretch horizontally so the extra width helps more than height.
+//
+// Uses decodeFromCanvas (single-shot decode). Schedules the next
+// iteration via setTimeout only after the previous one settles,
+// avoiding overlapping decodes that would thrash CPU on mobile.
+function startReticleDecodeLoop(video, ZX){
+  if(!_scan.zxReader) return;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
+  if(!ctx){ console.warn('2d canvas context unavailable — skipping reticle loop'); return; }
+
+  const tick = () => {
+    if(!_scan.open || !_scan.zxReader) return;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if(!vw || !vh || video.readyState < 2){
+      _scan.reticleTimer = setTimeout(tick, 200);
+      return;
+    }
+    // Crop the central 80% × 45% strip. This covers the reticle the
+    // user sees on screen with margin on every side, while cutting
+    // out the ~1/3 top and bottom bands (camera header / bottom
+    // status/log) that never contain a barcode.
+    const cropW = Math.round(vw * 0.80);
+    const cropH = Math.round(vh * 0.45);
+    const cropX = Math.round((vw - cropW) / 2);
+    const cropY = Math.round((vh - cropH) / 2);
+    canvas.width  = cropW;
+    canvas.height = cropH;
+    try {
+      ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    } catch(e){
+      // drawImage can throw on iOS if the video element isn't ready
+      // after all (race with teardown). Try again next tick.
+      _scan.reticleTimer = setTimeout(tick, 200);
+      return;
+    }
+    try {
+      const result = _scan.zxReader.decodeFromCanvas(canvas);
+      if(result){
+        handleScannedCode(result.getText());
+      }
+    } catch(e){
+      // NotFoundException is normal — no barcode in this crop.
+      if(e && e.name && e.name !== 'NotFoundException'
+        && !(ZX.NotFoundException && e instanceof ZX.NotFoundException)){
+        console.debug('reticle decode err', e.name, e.message);
+      }
+    }
+    if(_scan.open){
+      _scan.reticleTimer = setTimeout(tick, 200);
+    }
+  };
+  // Small initial delay so the first decode doesn't race with the
+  // full-frame path's own first sample.
+  _scan.reticleTimer = setTimeout(tick, 250);
+}
+
 function closeBarcodeScanner(){
   const ov = document.getElementById('scan-overlay');
   ov.classList.remove('open');
   _scan.open = false;
   if(_scan.rafId){ cancelAnimationFrame(_scan.rafId); _scan.rafId=null; }
   if(_scan.diagTimer){ clearTimeout(_scan.diagTimer); _scan.diagTimer=null; }
+  if(_scan.reticleTimer){ clearTimeout(_scan.reticleTimer); _scan.reticleTimer=null; }
   if(_scan.zxReader){
     try { _scan.zxReader.reset(); } catch(e){}
     _scan.zxReader = null;
