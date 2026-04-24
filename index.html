@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.3';
+const GRIP_VERSION = '1.19.4';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5974,18 +5974,77 @@ function startZXingScan(){
       ZX.BarcodeFormat.ITF,      ZX.BarcodeFormat.QR_CODE,
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-    _scan.zxReader = new ZX.BrowserMultiFormatReader(hints, 200);
-    // decodeFromVideoElement returns a promise that resolves on the
-    // first successful decode. We use decodeFromVideoElementContinuously
-    // via the callback form to keep scanning.
+    // 100ms between scan attempts = ~10 samples/sec. Faster than
+    // ZXing's 500ms default, chosen because the user typically aims
+    // the phone at a label and expects recognition within a beat or
+    // two. Lower still (50ms) eats more CPU with no perceptible UX
+    // gain; higher (200ms) feels sluggish on a shaky handheld shot.
+    _scan.zxReader = new ZX.BrowserMultiFormatReader(hints, 100);
+
     const video = document.getElementById('scan-video');
-    _scan.zxReader.decodeFromVideoElement(video, (result, err) => {
+
+    // IMPORTANT: the right method for continuous scanning depends on
+    // what the @zxing/library build actually exposes, and on whether
+    // we have a pre-acquired stream (which we do — see openBarcodeScanner).
+    // Preference order, tuned against real-world failure reports on
+    // mobile Chromium:
+    //
+    //   1. decodeFromStream(stream, videoEl, cb)
+    //      — ZXing takes ownership of the MediaStream, attaches it to
+    //        the video element itself, and manages the play lifecycle.
+    //        This sidesteps the class of bugs where we've already
+    //        attached the stream and called play(), and ZXing's
+    //        internal 'playing' event listener misses the transition
+    //        so it never starts sampling frames.
+    //
+    //   2. decodeFromVideoElementContinuously(videoEl, cb)
+    //      — fallback for builds missing decodeFromStream.
+    //
+    //   3. decodeFromVideoElement(videoEl, cb)
+    //      — last resort. The non-'Continuously' version does a SINGLE
+    //        decode attempt and ignores the callback arg. Was the
+    //        original code path — explains the 'camera loads, nothing
+    //        decodes' report: no error, no scanning, just silence.
+    const cb = (result, err) => {
       if(result){
         handleScannedCode(result.getText());
       }
-      // Ignore decode errors — they just mean no barcode was visible
-      // in this frame.
-    });
+      // NotFoundException per frame is normal — only log non-standard errors
+      if(err && err.name && err.name !== 'NotFoundException'
+             && !(ZX.NotFoundException && err instanceof ZX.NotFoundException)){
+        console.debug('zxing decode err', err.name, err.message);
+      }
+    };
+    let startedFn = null;
+    let promise = null;
+    try {
+      if(typeof _scan.zxReader.decodeFromStream === 'function' && _scan.stream){
+        startedFn = 'decodeFromStream';
+        promise = _scan.zxReader.decodeFromStream(_scan.stream, video, cb);
+      } else if(typeof _scan.zxReader.decodeFromVideoElementContinuously === 'function'){
+        startedFn = 'decodeFromVideoElementContinuously';
+        promise = _scan.zxReader.decodeFromVideoElementContinuously(video, cb);
+      } else {
+        startedFn = 'decodeFromVideoElement';
+        promise = _scan.zxReader.decodeFromVideoElement(video, cb);
+      }
+    } catch(syncErr){
+      console.warn('ZXing decode start threw:', syncErr);
+      setScanStatus('Scanner engine failed to start. Use the manual input.', '');
+      return;
+    }
+    // Swallow async rejections from the continuous-scan promise.
+    // They happen on teardown: when the user closes the scanner, the
+    // stream stops and ZXing rejects its internal loop. Only surface
+    // them if we're still supposedly scanning.
+    if(promise && typeof promise.catch === 'function'){
+      promise.catch(err => {
+        if(_scan.open){
+          console.warn('ZXing continuous decode rejected:', err);
+        }
+      });
+    }
+    console.info('ZXing started via', startedFn);
   } catch(e){
     console.warn('ZXing start failed:', e);
     setScanStatus('Scanner engine failed to start. Use the manual input.', '');

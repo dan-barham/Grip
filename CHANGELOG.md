@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.4] - 2026-04-24  _patch_
+
+- Switch ZXing to decodeFromStream, fixing silent-no-decode on mobile
+
 ## [1.19.3] - 2026-04-24  _patch_
 
 - Fix mobile scanner not decoding: skip broken native detector + add watchdog
