@@ -4092,7 +4092,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.1';
+const GRIP_VERSION = '1.19.2';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6300,6 +6300,13 @@ function renderLabelPicker(){
   const escAttr = s => String(s||'').replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  // Capture scroll position of the pick-items list before we rebuild
+  // innerHTML (which destroys and recreates the element, resetting
+  // scrollTop to 0). Every checkbox click re-renders, so without this
+  // the list would jump back to the top on every tick.
+  const prevList = host.querySelector('.lp-pick-list');
+  const savedScroll = prevList ? prevList.scrollTop : 0;
+
   host.innerHTML = `
     <div class="lp-mode-row">
       <label class="lp-mode ${_labelSelection.mode==='all'?'active':''}">
@@ -6350,6 +6357,10 @@ function renderLabelPicker(){
       searchEl.setSelectionRange(v.length, v.length);
       _labelSelection._focusSearch = false;
     }
+    // Restore the pick-list scroll position after the innerHTML rebuild
+    // blew it away. Does nothing on the first render (savedScroll=0).
+    const newList = host.querySelector('.lp-pick-list');
+    if(newList && savedScroll) newList.scrollTop = savedScroll;
   }
 }
 
@@ -6872,25 +6883,27 @@ function buildSingleLabelXml(item){
   const SAFETY_PAD = 2.8;
 
   // Barcode — left-aligned with the leading-edge safety inset, and
-  // vertically centred in the printable band.
+  // vertically centred in the printable band with a downward visual
+  // bias (see VERTICAL_BIAS note below).
   //
   //   printable x starts at: MAR_T + SAFETY_PAD = 8.4pt  (inside guide)
   //   printable y band:      [MAR_L, PAPER_W-MAR_L] = [3.2, 48.0], 44.8pt
-  //   barcode height 36pt, centred in 44.8pt band:
-  //     top = MAR_L + (44.8 - 36)/2 = 3.2 + 4.4 = 7.6pt
-  //     bot = 7.6 + 36 = 43.6pt  (4.4pt clear below guide)
+  //   barcode height 32pt, y-centred with +4pt bias:
+  //     top = MAR_L + (44.8 - 32)/2 + 4 = 3.2 + 6.4 + 4 = 13.6pt
+  //     bot = 13.6 + 32 = 45.6pt  (2.4pt / 0.85mm clear below guide)
   //
   // VERTICAL_BIAS nudges the whole content block downward by a fixed
   // amount to compensate for the fact that 18mm TZe tape has a wider
   // unprintable strip at the top than at the bottom (roughly 1.5mm
   // vs 1mm). Purely printable-band-centred content therefore appears
-  // visually top-heavy on the physical tape. 2pt (~0.7mm) downshift
-  // balances it against PT Editor's preview without pushing the
-  // bottom of the barcode past the margin guide.
-  const BC_H_PT       = 36;
+  // visually top-heavy on the physical tape. 4pt (~1.4mm) downshift
+  // balances it against PT Editor's preview. Paired with a slightly
+  // shorter barcode (32pt instead of 36pt) so the downshift doesn't
+  // push the bottom bars into the guide line.
+  const BC_H_PT       = 32;
   const PRINTABLE_H   = PAPER_W - 2*MAR_L;               // 44.8pt
-  const VERTICAL_BIAS = 2;                               // nudge down ~0.7mm
-  const BC_Y          = MAR_L + (PRINTABLE_H - BC_H_PT)/2 + VERTICAL_BIAS;  // 9.6pt
+  const VERTICAL_BIAS = 4;                               // nudge down ~1.4mm
+  const BC_Y          = MAR_L + (PRINTABLE_H - BC_H_PT)/2 + VERTICAL_BIAS;  // 13.6pt
   const BC_X          = MAR_T + SAFETY_PAD;              // 8.4pt
 
   // Text column — to the right of the barcode with a visible gap
@@ -6902,7 +6915,7 @@ function buildSingleLabelXml(item){
   // Total 32pt, centred in the 44.8pt printable band (plus the same
   // VERTICAL_BIAS applied to the barcode, so the two objects stay
   // aligned with each other on the tape):
-  //   top of block = MAR_L + (44.8 - 32)/2 + 2 = 3.2 + 6.4 + 2 = 11.6pt
+  //   top of block = MAR_L + (44.8 - 32)/2 + VERTICAL_BIAS = 13.6pt
   const NAME_H = 17;
   const ID_H   = 13;
   const LINE_GAP = 2;

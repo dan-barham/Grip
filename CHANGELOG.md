@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.2] - 2026-04-24  _patch_
+
+- Tune LBX vertical bias, preserve picker scroll on check
+
 ## [1.19.1] - 2026-04-24  _patch_
 
 - Shift LBX content down 2pt for visual centring on tape
