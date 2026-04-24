@@ -4032,7 +4032,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.18.5';
+const GRIP_VERSION = '1.18.6';
 const GRIP_BUILD_DATE = '2026-04-24';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -6577,27 +6577,38 @@ function buildSingleLabelXml(item){
   //
   // (Yes, the "x" axis's guide uses marginTOP and "y" uses marginLEFT
   // — the orientation=landscape rotation swaps which margin corresponds
-  // to which object axis. Verified against the Alecto QL-700 reference.)
+  // to which object axis. Verified against the Alecto QL-700 reference
+  // and by observation of PT's own output.)
   //
-  // Vertical centring:
-  //   printable height = PAPER_W - 2*MAR_L = 44.8pt
-  //   barcode height   = 40pt (fills printable height w/ small pad)
-  //   top of barcode   = MAR_L + (44.8 - 40)/2 = 3.2 + 2.4 = 5.6pt
-  //   (also leaves 5.6pt below, symmetric)
-  const BC_H_PT    = 40;
-  const PRINTABLE_H = PAPER_W - 2*MAR_L;               // 44.8pt
-  const BC_Y       = MAR_L + (PRINTABLE_H - BC_H_PT)/2; // 5.6pt
-  const BC_X       = MAR_T;                             // 5.6pt (left inset)
+  // SAFETY_PAD inserts an extra inset past the margin guide on every
+  // side so object edges never ride the guide line itself — previous
+  // versions placed the barcode left edge exactly AT x=MAR_T, which
+  // PT's preview renders with aliasing that looks like the bars
+  // cross the dotted boundary. 2.8pt (~1mm) is small enough to keep
+  // the label dense but big enough to be visually clearly inside.
+  const SAFETY_PAD = 2.8;
+
+  // Barcode — left-aligned with the leading-edge safety inset, and
+  // vertically centred in the printable band.
+  //
+  //   printable x starts at: MAR_T + SAFETY_PAD = 8.4pt  (inside guide)
+  //   printable y band:      [MAR_L, PAPER_W-MAR_L] = [3.2, 48.0], 44.8pt
+  //   barcode height 36pt, centred in 44.8pt band:
+  //     top = MAR_L + (44.8 - 36)/2 = 3.2 + 4.4 = 7.6pt
+  //     bot = 7.6 + 36 = 43.6pt  (4.4pt clear below guide)
+  const BC_H_PT    = 36;
+  const PRINTABLE_H = PAPER_W - 2*MAR_L;                 // 44.8pt
+  const BC_Y       = MAR_L + (PRINTABLE_H - BC_H_PT)/2;  // 7.6pt
+  const BC_X       = MAR_T + SAFETY_PAD;                 // 8.4pt
 
   // Text column — to the right of the barcode with a visible gap
   const GAP    = 8;   // ~2.8mm gap between bars and text
   const TEXT_X = BC_X + bcRenderedW + GAP;
 
-  // Two text lines stacked. Name on top (~12pt text + padding = 17pt
-  // tall), asset ID below (~10pt text + padding = 13pt tall), with
-  // a 2pt inter-line gap. Total: 17 + 2 + 13 = 32pt, centered in
-  // the 44.8pt printable height → top of block at:
-  //   MAR_L + (44.8 - 32)/2 = 3.2 + 6.4 = 9.6pt
+  // Two text lines stacked: name on top (~12pt text → 17pt bbox),
+  // asset ID below (~10pt text → 13pt bbox), 2pt inter-line gap.
+  // Total 32pt, centred in the 44.8pt printable band:
+  //   top of block = MAR_L + (44.8 - 32)/2 = 3.2 + 6.4 = 9.6pt
   const NAME_H = 17;
   const ID_H   = 13;
   const LINE_GAP = 2;
@@ -6608,7 +6619,11 @@ function buildSingleLabelXml(item){
   // Text box widths — hints; AUTOLEN expands to fit the actual text.
   const TEXT_W = 140;
 
-  // backGround: axes swapped from objectStyle (see note above)
+  // backGround: axes swapped from objectStyle (see note above).
+  // Uses the declared margins directly — PT's preview dotted guide
+  // is drawn from this rectangle, so we leave it at the full
+  // margin-inset area even though our objects sit inside it with
+  // the extra SAFETY_PAD.
   const BG_X = MAR_T;                          // 5.6
   const BG_Y = MAR_L;                          // 3.2
   const BG_W = PAPER_H - 2*MAR_T;              // 2823.2
