@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.18.4] - 2026-04-24  _patch_
+
+- Fix .lbx printable-area padding and barcode-to-text spacing
+
 ## [1.18.3] - 2026-04-23  _patch_
 
 - Fix .lbx text/barcode overlap by rewriting layout in landscape-native coordinates
