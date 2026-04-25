@@ -4092,8 +4092,8 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.7';
-const GRIP_BUILD_DATE = '2026-04-24';
+const GRIP_VERSION = '1.19.8';
+const GRIP_BUILD_DATE = '2026-04-25';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
 let borrowQtys = {}; // borrow portal item quantities
@@ -5825,6 +5825,10 @@ const _scan = {
   // the central strip of the frame at full resolution. See
   // startReticleDecodeLoop for rationale.
   reticleTimer: null,
+  // Dedicated ZXing reader for the reticle crop loop. Separate from
+  // zxReader (the continuous video reader) so they don't stomp on
+  // each other's internal state. See startReticleDecodeLoop for why.
+  reticleReader: null,
 };
 
 // Wait for a video element to be ready for frame sampling. Returns
@@ -6183,7 +6187,7 @@ function startZXingScan(){
 }
 
 // Parallel scan path: every 200ms, crop the central strip of the
-// current video frame to a canvas and ask ZXing to decode just that.
+// current video frame to an Image and ask ZXing to decode just that.
 // Effectively doubles the pixels-per-bar for small barcodes by
 // trading away periphery the user wasn't aiming at anyway.
 //
@@ -6193,17 +6197,58 @@ function startZXingScan(){
 // centred) so minor aim errors still hit the crop region. 1D bars
 // stretch horizontally so the extra width helps more than height.
 //
-// Uses decodeFromCanvas (single-shot decode). Schedules the next
-// iteration via setTimeout only after the previous one settles,
-// avoiding overlapping decodes that would thrash CPU on mobile.
+// IMPORTANT: the @zxing/library 0.21 UMD bundle does NOT expose
+// decodeFromCanvas (that method is only in @zxing/browser). Earlier
+// versions of this loop called it and silently failed for every
+// frame — TypeError on an undefined method, caught by the surrounding
+// try/catch, logged at debug level only. Verified via a headless
+// test that decodeFromImageElement DOES exist and correctly decodes
+// a CODE_128 on a simulated Brother yellow TZe background.
+//
+// Two non-obvious gotchas confirmed by the same headless tests:
+//
+//   1. decodeFromImageElement HANGS on the second call if the SAME
+//      Image element is reused — its internal load-listener tracking
+//      gets confused by the second src= assignment, and the promise
+//      never resolves. Fix: allocate a fresh Image per tick.
+//
+//   2. We need a SEPARATE reader instance from the continuous-video
+//      reader (_scan.zxReader). They each maintain internal state
+//      that gets stomped on by concurrent calls; in particular,
+//      calling reset() on the shared reader (a workaround for #1)
+//      would also kill the continuous video scan.
+//
+// The round-trip is: crop-to-canvas → toDataURL → Image.src →
+// decodeFromImageElement. A little indirect, but avoids the
+// drawImage TypeError that HTMLCanvasElementLuminanceSource throws
+// on this UMD build (its drawImage call expects a video/image, not
+// a canvas — an internal bug in the build).
 function startReticleDecodeLoop(video, ZX){
   if(!_scan.zxReader) return;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', {willReadFrequently: true});
   if(!ctx){ console.warn('2d canvas context unavailable — skipping reticle loop'); return; }
 
-  const tick = () => {
-    if(!_scan.open || !_scan.zxReader) return;
+  // Dedicated reader for this loop — see gotcha #2 above.
+  let reticleReader;
+  try {
+    const hints = new Map();
+    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
+      ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.CODE_39,
+      ZX.BarcodeFormat.EAN_13,   ZX.BarcodeFormat.EAN_8,
+      ZX.BarcodeFormat.UPC_A,    ZX.BarcodeFormat.UPC_E,
+      ZX.BarcodeFormat.ITF,      ZX.BarcodeFormat.QR_CODE,
+    ]);
+    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+    reticleReader = new ZX.BrowserMultiFormatReader(hints);
+  } catch(e){
+    console.warn('reticle reader init failed:', e);
+    return;
+  }
+  _scan.reticleReader = reticleReader;  // saved so closeBarcodeScanner can reset it
+
+  const tick = async () => {
+    if(!_scan.open || !_scan.reticleReader) return;
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if(!vw || !vh || video.readyState < 2){
@@ -6225,19 +6270,40 @@ function startReticleDecodeLoop(video, ZX){
     } catch(e){
       // drawImage can throw on iOS if the video element isn't ready
       // after all (race with teardown). Try again next tick.
-      _scan.reticleTimer = setTimeout(tick, 200);
+      if(_scan.open) _scan.reticleTimer = setTimeout(tick, 200);
       return;
     }
+    // Canvas → data URL → fresh Image → decodeFromImageElement. The
+    // Image must be fully loaded before ZXing will decode it, so we
+    // await the load event. Fresh Image per tick — see gotcha #1
+    // above; reusing the same Image makes the second decode hang.
+    let dataUrl;
+    try { dataUrl = canvas.toDataURL('image/png'); }
+    catch(e){
+      console.debug('toDataURL failed', e.message);
+      if(_scan.open) _scan.reticleTimer = setTimeout(tick, 200);
+      return;
+    }
+    const img = new Image();
+    await new Promise(resolve => {
+      img.onload  = resolve;
+      img.onerror = resolve;  // resolve even on error, next tick handles it
+      img.src = dataUrl;
+    });
     try {
-      const result = _scan.zxReader.decodeFromCanvas(canvas);
+      const result = await reticleReader.decodeFromImageElement(img);
       if(result){
         handleScannedCode(result.getText());
       }
     } catch(e){
-      // NotFoundException is normal — no barcode in this crop.
-      if(e && e.name && e.name !== 'NotFoundException'
-        && !(ZX.NotFoundException && e instanceof ZX.NotFoundException)){
-        console.debug('reticle decode err', e.name, e.message);
+      // NotFoundException / NotFoundException2 are normal — no
+      // barcode in this crop. Other errors worth a debug log.
+      const name = e && e.name;
+      const isNotFound = name === 'NotFoundException'
+        || name === 'NotFoundException2'
+        || (ZX.NotFoundException && e instanceof ZX.NotFoundException);
+      if(!isNotFound){
+        console.debug('reticle decode err', name, e && e.message);
       }
     }
     if(_scan.open){
@@ -6259,6 +6325,10 @@ function closeBarcodeScanner(){
   if(_scan.zxReader){
     try { _scan.zxReader.reset(); } catch(e){}
     _scan.zxReader = null;
+  }
+  if(_scan.reticleReader){
+    try { _scan.reticleReader.reset(); } catch(e){}
+    _scan.reticleReader = null;
   }
   if(_scan.stream){
     _scan.stream.getTracks().forEach(t=>t.stop());

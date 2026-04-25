@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.19.8] - 2026-04-25  _patch_
+
+- Replace non-existent decodeFromCanvas + dedicated reticle reader
+
 ## [1.19.7] - 2026-04-24  _patch_
 
 - Add reticle-crop parallel decode loop for small barcodes
