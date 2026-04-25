@@ -1788,6 +1788,67 @@ td.ta .btn+.btn{margin-left:.25rem;}
 }
 .htc-prep-btn:hover{ background:var(--surface3);border-color:var(--accent);color:var(--text); }
 
+
+/* ── BOOKING CONFLICT PANEL — overlap warnings on new/edit modals
+       and inside admin queue row drawers. Yellow tint (advisory),
+       not red (blocking) — admins can override. */
+.bcp-warning{
+  border:1px solid #d09030;border-left:3px solid #d09030;
+  background:rgba(245,166,35,.08);
+  border-radius:6px;
+  padding:.6rem .85rem;
+  margin:.7rem 0;
+  font-size:.85rem;color:var(--text);
+}
+.bcp-warning-head{
+  font-size:.85rem;color:var(--text);
+  margin-bottom:.5rem;line-height:1.4;
+}
+.bcp-list{
+  display:flex;flex-direction:column;gap:.4rem;
+}
+.bcp-conflict{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:.45rem .65rem;
+  font-size:.82rem;
+}
+.bcp-conflict-head{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:.45rem;margin-bottom:.25rem;
+}
+.bcp-conflict-status{
+  font-size:.65rem;font-weight:600;letter-spacing:.04em;
+  padding:.1rem .35rem;border-radius:3px;
+  font-family:var(--mono);text-transform:uppercase;
+}
+.bcp-status-approved{ background:rgba(34,197,94,.18);color:var(--green); }
+.bcp-status-pending{ background:rgba(217,119,6,.18);color:#d77706; }
+.bcp-conflict-dates{
+  font-family:var(--mono);font-size:.78rem;color:var(--text3);
+  margin-left:auto;
+}
+.bcp-conflict-items{
+  margin:.2rem 0 0 1rem;padding:0;
+  font-size:.8rem;color:var(--text2);
+}
+.bcp-conflict-items li{ margin:.1rem 0;list-style:disc; }
+
+/* Inline pill on collapsed admin booking rows: shows "⚠ N" if any
+   overlapping bookings exist for this booking's items+dates. Click
+   target inherits from row, just a visual marker. */
+.bcp-row-pill{
+  display:inline-flex;align-items:center;gap:.25rem;
+  background:rgba(245,166,35,.18);
+  color:#d09030;
+  border-radius:10px;
+  padding:.1rem .5rem;
+  font-size:.7rem;font-weight:600;
+  margin-left:.4rem;
+  white-space:nowrap;
+}
+
 /* Print mode for prep list */
 @media print{
   body.printing-prep > *:not(.prep-print-area){ display:none !important; }
@@ -3483,8 +3544,8 @@ td.ta .btn+.btn{margin-left:.25rem;}
           <option value="">— select renter —</option>
         </select>
       </div>
-      <div class="fg"><label>Start Date *</label><input id="anb-start" type="date"></div>
-      <div class="fg"><label>End Date *</label><input id="anb-end" type="date"></div>
+      <div class="fg"><label>Start Date *</label><input id="anb-start" type="date" onchange="_recheckAnbConflicts()"></div>
+      <div class="fg"><label>End Date *</label><input id="anb-end" type="date" onchange="_recheckAnbConflicts()"></div>
       <div class="fg"><label>Budget (CA$)</label><input id="anb-budget" type="number" min="0" step="50" placeholder="optional"></div>
     </div>
 
@@ -3514,6 +3575,10 @@ td.ta .btn+.btn{margin-left:.25rem;}
       <label>Notes</label>
       <textarea id="anb-notes" rows="2" style="resize:vertical"></textarea>
     </div>
+
+    <!-- Conflict warning panel — populated by _recheckConflicts on
+         changes to dates / items. Empty when no conflicts found. -->
+    <div id="anb-conflicts"></div>
   </div>
 
   <div id="anb-status" style="font-size:.82rem;min-height:1.2em;padding:.2rem 0;color:var(--red)"></div>
@@ -3539,8 +3604,8 @@ td.ta .btn+.btn{margin-left:.25rem;}
 
   <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:.9rem 0 .5rem">Rental Dates &amp; Budget</div>
   <div class="frow">
-    <div class="fg"><label>Start Date</label><input id="eb-start" type="date"></div>
-    <div class="fg"><label>End Date</label><input id="eb-end" type="date"></div>
+    <div class="fg"><label>Start Date</label><input id="eb-start" type="date" onchange="_recheckEbConflicts()"></div>
+    <div class="fg"><label>End Date</label><input id="eb-end" type="date" onchange="_recheckEbConflicts()"></div>
     <div class="fg"><label>Budget (CA$)</label><input id="eb-budget" type="number" min="0" step="50" placeholder="0"></div>
   </div>
 
@@ -3552,6 +3617,9 @@ td.ta .btn+.btn{margin-left:.25rem;}
 
   <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:.9rem 0 .5rem">Notes</div>
   <textarea id="eb-notes" rows="2" style="width:100%;resize:vertical"></textarea>
+
+  <!-- Conflict warning panel — populated on date/item changes -->
+  <div id="eb-conflicts"></div>
 
   <div class="modal-foot">
     <button class="btn btn-ghost" onclick="closeModal('m-edit-borrow')">Cancel</button>
@@ -4332,7 +4400,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.21.0';
+const GRIP_VERSION = '1.22.0';
 const GRIP_BUILD_DATE = '2026-04-25';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -12128,6 +12196,180 @@ function applySettingsToUI() {
 
 
 // ══════════════════════════════════════════════════════════
+//  BOOKING CONFLICT DETECTION
+// ══════════════════════════════════════════════════════════
+// Two bookings conflict if they overlap in time AND share at least
+// one inventory item AND neither is rejected/archived. Surfaced as
+// yellow warnings on the new/edit modals (so admins see it before
+// submitting) and as a pill+expand panel on the admin queue rows
+// (so existing conflicts are discoverable in the queue itself).
+//
+// Pure function over S.borrowRequests + a candidate booking. No API
+// call, no schema change. The check runs client-side because:
+//   1. It's purely advisory (overrideable) — not a security guard.
+//   2. The data needed is already loaded into S.borrowRequests.
+//   3. Catching an edit conflict at submit-time gives instant
+//      feedback; a server round-trip for every date/qty keystroke
+//      would be wasteful.
+//
+// Limitations to be aware of:
+//   - We don't (yet) compare requested qty against pool size. If the
+//     inventory has 4 batteries and two overlapping bookings ask for
+//     2 each, that's flagged as a conflict even though the pool can
+//     satisfy both. v1 errs on the side of warning more than less;
+//     admins can override after a glance. A future iteration could
+//     show "2 reserved / 4 available" alongside each conflict.
+//   - Status 'rejected' bookings are excluded (they're not happening).
+//     'archived' bookings are also excluded — archived means done-
+//     with regardless of whether they ran or not, so they don't
+//     reserve capacity going forward.
+
+// Date-range overlap (inclusive on both ends): returns true if
+// [aStart, aEnd] and [bStart, bEnd] share any day.
+function _dateRangesOverlap(aStart, aEnd, bStart, bEnd){
+  // YYYY-MM-DD strings sort lexicographically. Empty/missing dates
+  // collapse to "no overlap" — a malformed booking is treated as
+  // not-conflicting rather than over-warning.
+  if(!aStart || !aEnd || !bStart || !bEnd) return false;
+  return aStart <= bEnd && bStart <= aEnd;
+}
+
+// Find conflicts between a candidate booking and the existing set.
+//
+// candidate: { start_date, end_date, items:[{inventory_id,qty}], id? }
+//   - id is optional: when editing an existing booking, pass its id
+//     so we don't flag the booking as conflicting with itself.
+// existing: array of bookings (defaults to S.borrowRequests).
+// Returns: [{otherId, otherName, otherStart, otherEnd, otherStatus,
+//            sharedItems:[{inventory_id, name, candidateQty, otherQty}]}]
+function detectBookingConflicts(candidate, existing){
+  const all = existing || S.borrowRequests || [];
+  const cStart = candidate.start_date;
+  const cEnd   = candidate.end_date;
+  const cId    = candidate.id || null;
+  const cItems = (candidate.items || []).filter(i => i.inventory_id);
+  if(!cStart || !cEnd || !cItems.length) return [];
+
+  // Build a Set of candidate inventory IDs for fast lookup
+  const cInvIds = new Set(cItems.map(i => i.inventory_id));
+
+  const conflicts = [];
+  for(const b of all){
+    if(cId && b.id === cId) continue;            // editing self
+    if(b.status === 'rejected') continue;
+    if(b.archived) continue;
+    if(!_dateRangesOverlap(cStart, cEnd, b.start_date, b.end_date)) continue;
+
+    const bItems = b.items || [];
+    const sharedItems = [];
+    for(const bi of bItems){
+      const id = bi.inventory_id || bi.id;
+      if(!id || !cInvIds.has(id)) continue;
+      const inv = (S.inventory||[]).find(i => i.id === id);
+      const cQty = (cItems.find(ci => ci.inventory_id === id)?.qty) || 1;
+      sharedItems.push({
+        inventory_id: id,
+        name: inv?.name || bi.name || '(unknown item)',
+        candidateQty: cQty,
+        otherQty: bi.qty || 1,
+        invQty: inv?.qty || null,
+      });
+    }
+    if(sharedItems.length){
+      conflicts.push({
+        otherId: b.id,
+        otherName: b.contact_name || '(unnamed)',
+        otherStart: b.start_date,
+        otherEnd: b.end_date,
+        otherStatus: b.status || 'pending',
+        sharedItems,
+      });
+    }
+  }
+  return conflicts;
+}
+
+// Render an HTML warning panel for a list of conflicts. Returns
+// empty string when the list is empty (so callers can unconditionally
+// inject the result without a wrapper if-check). Yellow tint, not
+// red, because conflicts are advisory not blocking.
+function renderBookingConflictsPanel(conflicts, opts){
+  const escAttr = s => String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if(!conflicts || !conflicts.length) return '';
+  const compact = opts?.compact;
+  const rows = conflicts.map(c => {
+    const dateRange = `${fmtShort(c.otherStart)} → ${fmtShort(c.otherEnd)}`;
+    const itemsList = c.sharedItems.map(s => {
+      const qtyHint = s.invQty ? ` (pool: ${s.invQty})` : '';
+      return `<li><strong>${escHtml(s.name)}</strong> — you: ×${s.candidateQty}, them: ×${s.otherQty}${qtyHint}</li>`;
+    }).join('');
+    const statusLabel = c.otherStatus.charAt(0).toUpperCase() + c.otherStatus.slice(1);
+    return `<div class="bcp-conflict">
+      <div class="bcp-conflict-head">
+        <strong>${escHtml(c.otherName)}</strong>
+        <span class="bcp-conflict-status bcp-status-${c.otherStatus}">${statusLabel}</span>
+        <span class="bcp-conflict-dates">${dateRange}</span>
+      </div>
+      <ul class="bcp-conflict-items">${itemsList}</ul>
+    </div>`;
+  }).join('');
+  const totalShared = conflicts.reduce((s,c) => s + c.sharedItems.length, 0);
+  return `<div class="bcp-warning">
+    <div class="bcp-warning-head">
+      ⚠ <strong>Overlap${conflicts.length===1?'':'s'} detected:</strong>
+      ${conflicts.length} other booking${conflicts.length===1?'':'s'} —
+      ${totalShared} shared item${totalShared===1?'':'s'}
+      ${compact?'':' · admins can override but should confirm intent'}
+    </div>
+    <div class="bcp-list">${rows}</div>
+  </div>`;
+}
+
+// Recheck conflicts for the new-booking modal. Reads current form
+// state, runs detection, and updates the #anb-conflicts placeholder.
+// Called from onchange/oninput handlers on dates and from the
+// equipment-checkbox toggle. Quick enough to run on every keystroke
+// of a date input — pure JS over already-loaded data.
+function _recheckAnbConflicts(){
+  const host = document.getElementById('anb-conflicts');
+  if(!host) return;
+  const start = document.getElementById('anb-start')?.value;
+  const end   = document.getElementById('anb-end')?.value;
+  const items = [];
+  document.querySelectorAll('#anb-inv-list .borrow-item.checked').forEach(el => {
+    const id = el.id.replace('anb-item-','');
+    items.push({inventory_id: id, qty: (typeof anbQtys !== 'undefined' && anbQtys[id]) || 1});
+  });
+  if(!start || !end || !items.length){
+    host.innerHTML = '';
+    return;
+  }
+  const conflicts = detectBookingConflicts({start_date:start, end_date:end, items});
+  host.innerHTML = renderBookingConflictsPanel(conflicts);
+}
+
+// Same for the edit-booking modal. Skips self-conflict by passing
+// the booking's id (so editing dates without changing items doesn't
+// flag the booking as conflicting with its own previous version).
+function _recheckEbConflicts(){
+  const host = document.getElementById('eb-conflicts');
+  if(!host) return;
+  const id    = document.getElementById('eb-id')?.value;
+  const start = document.getElementById('eb-start')?.value;
+  const end   = document.getElementById('eb-end')?.value;
+  const items = (typeof ebItems !== 'undefined' ? ebItems : [])
+    .filter(i => i.inventory_id);
+  if(!start || !end || !items.length){
+    host.innerHTML = '';
+    return;
+  }
+  const conflicts = detectBookingConflicts({id, start_date:start, end_date:end, items});
+  host.innerHTML = renderBookingConflictsPanel(conflicts);
+}
+
+
+// ══════════════════════════════════════════════════════════
 //  ADMIN CREATE BORROW REQUEST
 // ══════════════════════════════════════════════════════════
 let anbQtys = {}; // inventory_id → qty
@@ -12155,6 +12397,9 @@ function openAdminNewBorrow() {
   });
   document.getElementById('anb-status').textContent = '';
   document.getElementById('anb-contact-summary').textContent = '';
+  // Clear any stale conflict warning from a previous open
+  const conflEl = document.getElementById('anb-conflicts');
+  if(conflEl) conflEl.innerHTML = '';
   // Render inventory checklist
   anb_renderInventory();
   openModal('m-admin-new-borrow');
@@ -12224,12 +12469,14 @@ function anb_toggle(id) {
   if(!chk||!item) return;
   chk.checked = !chk.checked;
   item.classList.toggle('checked', chk.checked);
+  _recheckAnbConflicts();
 }
 
 function anb_adj(id, delta) {
   anbQtys[id] = Math.max(1,(anbQtys[id]||1)+delta);
   const el = document.getElementById('anb-qty-'+id);
   if(el) el.textContent = '×'+anbQtys[id];
+  _recheckAnbConflicts();
 }
 
 async function submitAdminNewBorrow() {
@@ -12302,6 +12549,9 @@ function openEditBorrow(id) {
   }));
   renderEbItems();
   openModal('m-edit-borrow');
+  // Run an initial conflict check so any existing overlap is shown
+  // immediately on open, not only after the user starts editing.
+  setTimeout(_recheckEbConflicts, 50);
 }
 
 function renderEbItems() {
@@ -12318,13 +12568,13 @@ function renderEbItems() {
       `<option value="${i.id}" ${i.id===it.inventory_id?'selected':''}>${i.name} (${i.cat})</option>`
     ).join('');
     return `<div style="display:flex;align-items:center;gap:.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.4rem .65rem">
-      <select onchange="ebItems[${idx}].inventory_id=this.value"
+      <select onchange="ebItems[${idx}].inventory_id=this.value;_recheckEbConflicts()"
         style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.3rem .5rem;font-size:.84rem;color:var(--text)">
         <option value="">— select item —</option>
         ${opts}
       </select>
       <input type="number" min="1" value="${it.qty||1}"
-        oninput="ebItems[${idx}].qty=Math.max(1,parseInt(this.value)||1)"
+        oninput="ebItems[${idx}].qty=Math.max(1,parseInt(this.value)||1);_recheckEbConflicts()"
         style="width:52px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.3rem .4rem;font-size:.85rem;color:var(--text);text-align:center"
         title="Quantity">
       <button class="btn btn-danger btn-xs" onclick="ebRemoveItem(${idx})">✕</button>
@@ -12335,11 +12585,13 @@ function renderEbItems() {
 function ebRemoveItem(idx) {
   ebItems.splice(idx, 1);
   renderEbItems();
+  _recheckEbConflicts();
 }
 
 function ebAddItemRow() {
   ebItems.push({inventory_id:'', qty:1});
   renderEbItems();
+  _recheckEbConflicts();
   // Focus the new select
   const selects = document.querySelectorAll('#eb-items-list select');
   if(selects.length) selects[selects.length-1].focus();
@@ -12659,6 +12911,23 @@ function renderBorrowRequestsAdmin() {
       const rowId = 'br-gear-'+req.id;
       const statusClass = isArchived ? 'archived' : req.status;
 
+      // Detect conflicts with other bookings. Skipped for archived
+      // and rejected bookings — they don't reserve capacity.
+      const conflicts = (isArchived || req.status === 'rejected')
+        ? []
+        : detectBookingConflicts({
+            id: req.id,
+            start_date: req.start_date,
+            end_date: req.end_date,
+            items: req.items || [],
+          });
+      const conflictPill = conflicts.length
+        ? `<span class="bcp-row-pill" title="${conflicts.length} other booking${conflicts.length===1?'':'s'} overlap this date range">⚠ ${conflicts.length}</span>`
+        : '';
+      const conflictPanel = conflicts.length
+        ? renderBookingConflictsPanel(conflicts, {compact:true})
+        : '';
+
       html += `<div class="br-row br-status-${req.status}${isArchived?' br-row-archived':''}" id="brrow-${req.id}">
         <div class="br-row-main" onclick="brToggleGear('${req.id}')">
           <div class="br-row-status status-${statusClass}">${statusIcon(statusClass)}</div>
@@ -12673,12 +12942,14 @@ function renderBorrowRequestsAdmin() {
           <div class="br-row-gear-summary">
             <span class="br-gear-pill">${totalQty} item${totalQty!==1?'s':''}</span>
             ${budget?`<span class="br-budget-pill">${budget}</span>`:''}
+            ${conflictPill}
           </div>
           <div class="br-row-chevron" id="br-chev-${req.id}">›</div>
         </div>
         <div class="br-gear-drawer" id="${rowId}" style="display:none">
           <div class="br-gear-inner">
             ${fmtBorrowItems(req.items||[])}
+            ${conflictPanel}
             ${req.notes?`<div class="br-gear-note">💬 ${req.notes}</div>`:''}
             ${req.reason?`<div class="br-gear-note" style="color:var(--text2)">↳ Decision: ${req.reason}</div>`:''}
           </div>

@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.22.0] - 2026-04-25  _minor_
+
+- Add booking conflict detection (overlap warnings on bookings)
+
 ## [1.21.0] - 2026-04-25  _minor_
 
 - Add pre-shoot prep list — load-out checklist for shoot days
