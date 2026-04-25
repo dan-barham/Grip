@@ -1688,6 +1688,124 @@ td.ta .btn+.btn{margin-left:.25rem;}
 }
 
 
+/* ── PREP LIST — load-out checklist ── */
+.prep-header{
+  padding:.7rem .9rem;background:var(--surface2);
+  border-radius:6px;margin-bottom:.8rem;
+}
+.prep-title{font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
+.prep-subtitle{font-size:.85rem;color:var(--text3)}
+.prep-progress{
+  display:flex;align-items:center;gap:.7rem;
+  margin-top:.6rem;font-size:.85rem;color:var(--text2);
+}
+.prep-progress-bar{
+  flex:1;height:6px;background:var(--surface3);
+  border-radius:3px;overflow:hidden;
+}
+.prep-progress-fill{
+  height:100%;background:var(--green);
+  transition:width .25s ease-out;
+}
+.prep-actions{
+  display:flex;gap:.5rem;align-items:center;
+  font-size:.78rem;color:var(--text3);
+  margin-bottom:.6rem;
+}
+.prep-actions button{
+  background:none;border:1px solid var(--border);border-radius:4px;
+  padding:.25rem .55rem;font-size:.75rem;color:var(--text2);cursor:pointer;
+}
+.prep-actions button:hover{ background:var(--surface2);color:var(--text); }
+.prep-actions .sep{ flex:1; }
+.prep-list{
+  max-height:60vh;overflow-y:auto;
+  border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);
+}
+.prep-grouphead{
+  position:sticky;top:0;z-index:1;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.5rem .8rem;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  font-size:.78rem;font-weight:600;color:var(--text2);
+  letter-spacing:.02em;
+}
+.prep-grouphead .cat-dot{ width:8px;height:8px;border-radius:50%; }
+.prep-grouphead-name{ flex:1; }
+.prep-grouphead-n{
+  font-family:var(--mono);font-size:.72rem;color:var(--text3);
+  padding:.1rem .4rem;background:var(--surface2);border-radius:8px;
+}
+.prep-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.55rem .8rem .55rem 1rem;
+  border-bottom:1px solid var(--border);
+  font-size:.88rem;cursor:pointer;
+  transition:background .12s, opacity .15s;
+}
+.prep-row:last-child{ border-bottom:none; }
+.prep-row:hover{ background:var(--surface); }
+.prep-row.loaded{ opacity:.55; }
+.prep-row.loaded .prep-row-name{ text-decoration:line-through; color:var(--text3); }
+.prep-check{
+  width:22px;height:22px;flex-shrink:0;
+  border:2px solid var(--border2);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;
+  transition:background .15s, border-color .15s;
+}
+.prep-row.loaded .prep-check{
+  background:var(--green);border-color:var(--green);
+}
+.prep-row.loaded .prep-check::before{ content:"✓"; }
+.prep-row-name{
+  flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text);
+}
+.prep-row-id{
+  font-family:var(--mono);font-size:.72rem;color:var(--text3);
+  padding:.1rem .4rem;background:var(--surface);border-radius:3px;
+  flex-shrink:0;
+}
+.prep-row-qty{
+  font-family:var(--mono);font-size:.78rem;color:var(--text2);
+  flex-shrink:0;
+}
+.prep-empty{
+  padding:2rem 1rem;text-align:center;
+  color:var(--text3);font-size:.9rem;font-style:italic;
+}
+
+/* Inline prep-list shortcut button on home dashboard day tiles */
+.htc-prep-btn{
+  margin-left:.4rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:.35rem .55rem;
+  font-size:1rem;line-height:1;cursor:pointer;color:var(--text2);
+  transition:background .12s, border-color .12s, color .12s;
+}
+.htc-prep-btn:hover{ background:var(--surface3);border-color:var(--accent);color:var(--text); }
+
+/* Print mode for prep list */
+@media print{
+  body.printing-prep > *:not(.prep-print-area){ display:none !important; }
+  .prep-print-area{display:block !important;color:#000;background:#fff;padding:.5cm 1cm;font-family:system-ui,sans-serif;}
+  .prep-print-area .pp-title{font-size:18pt;font-weight:700;border-bottom:2px solid #000;padding-bottom:6pt;margin-bottom:6pt;}
+  .prep-print-area .pp-meta{font-size:11pt;color:#444;margin-bottom:14pt;}
+  .prep-print-area .pp-section{font-size:13pt;font-weight:700;margin-top:14pt;padding-top:6pt;border-top:1px solid #999;}
+  .prep-print-area table{width:100%;border-collapse:collapse;font-size:11pt;}
+  .prep-print-area td{padding:5pt 8pt;border-bottom:1px solid #ddd;vertical-align:top;}
+  .prep-print-area td.pp-check{width:20pt;border:1px solid #000;height:14pt;}
+  .prep-print-area td.pp-id{font-family:monospace;color:#666;font-size:10pt;width:100pt;}
+  .prep-print-area td.pp-qty{font-family:monospace;width:40pt;text-align:right;color:#666;}
+  .prep-print-area .pp-loaded td.pp-name{text-decoration:line-through;color:#888;}
+  .prep-print-area .pp-loaded td.pp-check::before{content:"✓";font-size:14pt;display:block;text-align:center;}
+}
+.prep-print-area{display:none}
+
+
 /* ── JOB RAIL SECTIONS ── */
 .rail-section-head{
   padding:.5rem 1rem .3rem;
@@ -3776,6 +3894,23 @@ td.ta .btn+.btn{margin-left:.25rem;}
   </div>
 </div></div>
 
+<!-- ── PREP LIST — load-out checklist for a specific shoot day ────
+     Shows a category-grouped list of every gear item on the day,
+     with a tap-to-load checkbox that toggles the gear's status.
+     Rendered as a checklist on screen and a clean grid for print.   -->
+<div class="overlay" id="m-prep-list" style="display:none"><div class="modal" style="max-width:640px">
+  <div id="prep-modal-body"></div>
+  <div class="modal-foot" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn btn-ghost" onclick="closeModal('m-prep-list')">Close</button>
+    <button class="btn btn-ghost" id="prep-btn-print" onclick="printPrepList()" title="Print as a paper checklist">🖨 Print</button>
+    <button class="btn btn-accent" onclick="prepListMarkAll()" id="prep-btn-mark-all">Mark all loaded</button>
+  </div>
+</div></div>
+
+<!-- Hidden print area populated by printPrepList() — only visible
+     when body has 'printing-prep' class (set during printDialog). -->
+<div class="prep-print-area" id="prep-print-area"></div>
+
 <!-- ── LABEL PRINT ────────────────────────────────────────── -->
 <!-- Selection picker + two output paths (browser print, .lbx export)
      for asset labels sized to Brother P-Touch 18mm tape.           -->
@@ -4197,7 +4332,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.20.0';
+const GRIP_VERSION = '1.21.0';
 const GRIP_BUILD_DATE = '2026-04-25';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5847,6 +5982,7 @@ function renderMain(){
       </div>
       <div class="gc-sep"></div>
       <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()" title="Select all visible">☑</button>
+      <button class="btn btn-ghost btn-sm" onclick="openPrepList()" title="Open prep list — checklist of items to load for this day">📋 Prep</button>
       <button class="btn btn-ghost btn-sm" onclick="exportDayCSV()" title="Export CSV">↓ CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="printDay()" title="Print this day">⎙</button>
       <button class="btn btn-ghost btn-sm" onclick="openCopyDay()" title="Copy gear to another day">⎘</button>
@@ -6098,6 +6234,297 @@ function navigateToInventoryItem(itemId, cat){
       setTimeout(() => row.classList.remove('inv-row-flash'), 1500);
     }
   }, 200);
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  PREP LIST — pre-shoot load-out checklist
+// ════════════════════════════════════════════════════════════
+// "It's the night before a shoot, what do I need to load?"
+// A modal that lists every gear item on a specific shoot day, grouped
+// by category, with a big tap-friendly checkbox per item. Tapping a
+// row toggles its status (in → out or out → in) — so the prep list
+// itself functions as the loading workflow, not a passive display.
+// "Loaded" rows show a strikethrough + faded so the eye skips them
+// and focuses on what's still to do.
+//
+// State: _prepDayId tracks which day the modal is currently showing.
+// Persists across renders so toggling a row only re-renders, not
+// re-opens.
+
+let _prepDayId = null;
+
+// Find a day across all jobs by id. Returns {job, day} or null.
+function _findDayById(dayId){
+  for(const j of (S.jobs||[])){
+    for(const d of (j.days||[])){
+      if(d.id === dayId) return {job: j, day: d};
+    }
+  }
+  return null;
+}
+
+// Open the prep list modal for a given day. Called from the day's
+// gear toolbar (shows current day's prep) or from home dashboard
+// tiles (shows that day's prep, possibly while operator is in
+// another job's view).
+function openPrepList(dayId){
+  const found = _findDayById(dayId || activeDayId);
+  if(!found){
+    toast('Select a shoot day first.');
+    return;
+  }
+  _prepDayId = found.day.id;
+  renderPrepList();
+  openModal('m-prep-list');
+}
+
+function renderPrepList(){
+  const host = document.getElementById('prep-modal-body');
+  if(!host) return;
+  const found = _findDayById(_prepDayId);
+  if(!found){
+    host.innerHTML = '<div class="prep-empty">Day not found.</div>';
+    return;
+  }
+  const {job, day} = found;
+  const gear = day.gear || [];
+
+  // Header info
+  const dateStr = day.date
+    ? new Date(day.date+'T12:00').toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'})
+    : 'No date';
+  const loaded = gear.filter(g => g.status === 'out').length;
+  const total = gear.length;
+  const pct = total ? Math.round(loaded/total*100) : 0;
+
+  if(!total){
+    host.innerHTML = `
+      <div class="prep-header">
+        <div class="prep-title">${escHtml(job.name)} — ${escHtml(day.label)}</div>
+        <div class="prep-subtitle">${dateStr}${day.location?' · '+escHtml(day.location):''}</div>
+      </div>
+      <div class="prep-empty">
+        No gear added to this day yet.
+        <div style="margin-top:.5rem;font-size:.8rem">Add items from inventory or use "+Item" first.</div>
+      </div>`;
+    document.getElementById('prep-btn-mark-all').style.display = 'none';
+    document.getElementById('prep-btn-print').style.display = 'none';
+    return;
+  }
+  document.getElementById('prep-btn-mark-all').style.display = '';
+  document.getElementById('prep-btn-print').style.display = '';
+
+  // Group by category, preserving the canonical CATS order so e.g.
+  // Camera comes before Power. Within a category, sort by name.
+  const byCat = {};
+  gear.forEach(g => {
+    const c = g.cat || 'Other';
+    (byCat[c] = byCat[c] || []).push(g);
+  });
+  const sortedCats = (CATS||[]).filter(c => byCat[c]);
+  // Pick up any unexpected categories not in CATS (e.g. legacy data)
+  Object.keys(byCat).forEach(c => { if(!sortedCats.includes(c)) sortedCats.push(c); });
+  sortedCats.forEach(c => byCat[c].sort((a,b) => (a.name||'').localeCompare(b.name||'')));
+
+  const allLoaded = loaded === total;
+
+  // Update Mark-all-loaded button label depending on state
+  const btn = document.getElementById('prep-btn-mark-all');
+  if(btn) btn.textContent = allLoaded ? 'Mark all unloaded' : 'Mark all loaded';
+
+  let listHtml = '';
+  sortedCats.forEach(c => {
+    const items = byCat[c];
+    const groupLoaded = items.filter(g => g.status === 'out').length;
+    const catSlug = c.toLowerCase().replace(/ /g,'-');
+    listHtml += `<div class="prep-grouphead">
+      <span class="cat-dot" style="background:var(--c-${catSlug})"></span>
+      <span class="prep-grouphead-name">${escHtml(c)}</span>
+      <span class="prep-grouphead-n">${groupLoaded}/${items.length}</span>
+    </div>`;
+    items.forEach(g => {
+      const isLoaded = g.status === 'out';
+      listHtml += `<div class="prep-row ${isLoaded?'loaded':''}" onclick="prepListToggle('${g.id}')">
+        <span class="prep-check"></span>
+        <span class="prep-row-name">${escHtml(g.name||'')}</span>
+        ${g.assetId?`<span class="prep-row-id">${escHtml(g.assetId)}</span>`:''}
+        ${(g.qty||1)>1?`<span class="prep-row-qty">×${g.qty}</span>`:''}
+      </div>`;
+    });
+  });
+
+  host.innerHTML = `
+    <div class="prep-header">
+      <div class="prep-title">📋 Prep · ${escHtml(job.name)} — ${escHtml(day.label)}</div>
+      <div class="prep-subtitle">${dateStr}${day.location?' · '+escHtml(day.location):''}</div>
+      <div class="prep-progress">
+        <span><strong style="color:var(--text)">${loaded}</strong> of ${total} loaded</span>
+        <div class="prep-progress-bar">
+          <div class="prep-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <span style="font-family:var(--mono);font-size:.78rem;min-width:36px;text-align:right">${pct}%</span>
+      </div>
+    </div>
+    <div class="prep-actions">
+      <span>Tap an item to mark it loaded</span>
+      <span class="sep"></span>
+    </div>
+    <div class="prep-list">${listHtml}</div>
+  `;
+}
+
+// Toggle a single gear item's load status. Mirrors what toggleStatus
+// in the main gear list does (PUT to /gear/:id, log entry) but uses
+// a faster optimistic-update path so taps feel instant on the prep
+// list. Falls back to a full re-render on the gear view too, since
+// the user may close the prep modal and immediately see the gear
+// list with the same items.
+async function prepListToggle(gearId){
+  const found = _findDayById(_prepDayId);
+  if(!found) return;
+  const g = found.day.gear.find(x => x.id === gearId);
+  if(!g) return;
+  const newStatus = g.status === 'out' ? 'in' : 'out';
+  g.status = newStatus;
+  // Re-render prep modal (cheap) and underlying gear list (in case
+  // it's also visible behind the modal).
+  renderPrepList();
+  if(typeof renderGearContent === 'function') renderGearContent();
+  // Persist. Mirrors toggleStatus's payload shape.
+  try {
+    await apiPut(`gear/${g.id}`, {
+      name: g.name, cat: g.cat, asset_id: g.assetId,
+      qty: g.qty, value: g.value, notes: g.notes||'',
+      status: newStatus, condition: g.condition||'Good',
+    });
+    // Single-line log entry mirrors toggleStatus formatting
+    if(typeof logEntry === 'function'){
+      logEntry(`${newStatus==='out'?'<span class="tag-out">LOADED OUT</span>':'<span class="tag-in">CHECKED IN</span>'} — ${escHtml(g.name)}${g.assetId?' ['+escHtml(g.assetId)+']':''} (prep list)`, newStatus);
+    }
+  } catch(e){
+    console.error('prep toggle failed:', e);
+    // Revert UI on failure
+    g.status = newStatus === 'out' ? 'in' : 'out';
+    renderPrepList();
+    if(typeof renderGearContent === 'function') renderGearContent();
+  }
+}
+
+// Mark every item on the day as either all-loaded (out) or, if
+// already all-loaded, all-unloaded (in). Two-state toggle on the
+// same button so the action is reversible — matches the existing
+// "ALL OUT / ALL IN" pattern elsewhere in the app.
+async function prepListMarkAll(){
+  const found = _findDayById(_prepDayId);
+  if(!found) return;
+  const gear = found.day.gear || [];
+  if(!gear.length) return;
+  const allOut = gear.every(g => g.status === 'out');
+  const targetStatus = allOut ? 'in' : 'out';
+  const action = allOut ? 'Unload all' : 'Load all';
+  // Confirm only when going from "loaded" → "unloaded" (the more
+  // surprising direction; the common case is "load all" which the
+  // operator triggered intentionally).
+  if(allOut && !confirm(`${action} ${gear.length} items on ${found.day.label}?`)) return;
+
+  const changed = gear.filter(g => g.status !== targetStatus);
+  if(!changed.length) return;
+  // Optimistic update first
+  changed.forEach(g => g.status = targetStatus);
+  renderPrepList();
+  if(typeof renderGearContent === 'function') renderGearContent();
+  // Persist sequentially. Sequential rather than Promise.all so we
+  // don't hammer the server with N parallel writes; for typical
+  // 10-50 item days this is fine and easier to reason about.
+  let ok = 0, failed = 0;
+  for(const g of changed){
+    try {
+      await apiPut(`gear/${g.id}`, {
+        name: g.name, cat: g.cat, asset_id: g.assetId,
+        qty: g.qty, value: g.value, notes: g.notes||'',
+        status: targetStatus, condition: g.condition||'Good',
+      });
+      ok++;
+    } catch(e){
+      failed++;
+    }
+  }
+  if(typeof logEntry === 'function'){
+    const tag = targetStatus==='out'?'<span class="tag-out">ALL LOADED</span>':'<span class="tag-in">ALL UNLOADED</span>';
+    logEntry(`${tag} — ${ok} item${ok!==1?'s':''} on <strong>${escHtml(found.day.label)}</strong> (prep list)${failed?` (${failed} failed)`:''}`, targetStatus);
+  }
+  if(failed) toast(`${failed} item${failed!==1?'s':''} failed to update`);
+}
+
+// Print a clean checklist for the current prep day. Builds a
+// dedicated print container with empty checkboxes for unloaded items
+// and ✓-marked boxes for loaded ones, then triggers the browser's
+// print dialog. Uses a body class to hide the rest of the app while
+// printing (the @media print rules in CSS handle the visibility).
+function printPrepList(){
+  const found = _findDayById(_prepDayId);
+  if(!found) return;
+  const {job, day} = found;
+  const gear = day.gear || [];
+  if(!gear.length) return;
+
+  const dateStr = day.date
+    ? new Date(day.date+'T12:00').toLocaleDateString([], {weekday:'long', month:'long', day:'numeric', year:'numeric'})
+    : 'No date set';
+
+  // Group like the on-screen render
+  const byCat = {};
+  gear.forEach(g => { (byCat[g.cat||'Other'] = byCat[g.cat||'Other'] || []).push(g); });
+  const sortedCats = (CATS||[]).filter(c => byCat[c]);
+  Object.keys(byCat).forEach(c => { if(!sortedCats.includes(c)) sortedCats.push(c); });
+  sortedCats.forEach(c => byCat[c].sort((a,b) => (a.name||'').localeCompare(b.name||'')));
+
+  let html = `
+    <div class="pp-title">📋 Prep List — ${escHtml(job.name)} — ${escHtml(day.label)}</div>
+    <div class="pp-meta">
+      ${dateStr}${day.location?' &nbsp;·&nbsp; '+escHtml(day.location):''}
+      &nbsp;·&nbsp; ${gear.length} items total
+    </div>`;
+  sortedCats.forEach(c => {
+    const items = byCat[c];
+    html += `<div class="pp-section">${escHtml(c)} <span style="color:#888;font-weight:normal;font-size:10pt"> — ${items.length} item${items.length!==1?'s':''}</span></div>
+      <table>`;
+    items.forEach(g => {
+      const loadedCls = g.status === 'out' ? ' class="pp-loaded"' : '';
+      html += `<tr${loadedCls}>
+        <td class="pp-check"></td>
+        <td class="pp-name">${escHtml(g.name||'')}</td>
+        <td class="pp-id">${escHtml(g.assetId||'')}</td>
+        <td class="pp-qty">${(g.qty||1)>1?'× '+g.qty:''}</td>
+      </tr>`;
+    });
+    html += '</table>';
+  });
+
+  const printArea = document.getElementById('prep-print-area');
+  if(!printArea){
+    console.warn('prep-print-area missing');
+    return;
+  }
+  printArea.innerHTML = html;
+  document.body.classList.add('printing-prep');
+  // Let the browser repaint before opening the print dialog. iOS
+  // Safari needs an extra tick or it prints the pre-class state.
+  setTimeout(() => {
+    window.print();
+    // Cleanup happens after the dialog closes (which is async on
+    // most browsers). afterprint event fires reliably.
+    const cleanup = () => {
+      document.body.classList.remove('printing-prep');
+      printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    // Belt-and-braces fallback: clean up after 30s even if afterprint
+    // never fires (Firefox in some configurations).
+    setTimeout(cleanup, 30000);
+  }, 80);
 }
 
 
@@ -9608,6 +10035,7 @@ function renderHome() {
           <div class="htc-meta">${esc(d.location||'No location')} · ${pl(d.gear.length,'item')}</div>
         </div>
         ${outN?`<span class="htc-badge out">${pl(outN,'item')} out</span>`:`<span class="htc-badge in">All in</span>`}
+        ${d.gear.length?`<button class="htc-prep-btn" onclick="event.stopPropagation();openPrepList('${d.id}')" title="Open prep list">📋</button>`:''}
       </div>`;
     });
     html += `</div></div>`;
@@ -9631,6 +10059,10 @@ function renderHome() {
       const dayN = dt.getDate();
       const badgeClass = daysAway <= 3 ? 'soon' : 'later';
       const badgeText = daysAway===1 ? 'Tomorrow' : 'In '+pl(daysAway,'day');
+      // Show the prep-list shortcut only for shoots ≤ 2 days away.
+      // Beyond that, the gear list is usually still being built and
+      // a "checklist" is premature.
+      const showPrep = daysAway <= 2 && d.gear.length;
       html+=`<div class="home-today-card" onclick="selectJob('${d.jobId}');selectDay('${d.id}');switchView('jobs')">
         <div class="htc-datebox">
           <div class="htc-datebox-day">${dayN}</div>
@@ -9641,6 +10073,7 @@ function renderHome() {
           <div class="htc-meta">${fmtDate(d.date)}${d.location?' · '+esc(d.location):''}</div>
         </div>
         <span class="htc-badge ${badgeClass}">${badgeText}</span>
+        ${showPrep?`<button class="htc-prep-btn" onclick="event.stopPropagation();openPrepList('${d.id}')" title="Open prep list">📋</button>`:''}
       </div>`;
     });
     html += `</div></div>`;
