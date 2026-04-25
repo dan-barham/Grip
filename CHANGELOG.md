@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [1.20.0] - 2026-04-25  _minor_
+
+- Add global Find Item lookup (search across inventory and gear)
+
 ## [1.19.8] - 2026-04-25  _patch_
 
 - Replace non-existent decodeFromCanvas + dedicated reticle reader

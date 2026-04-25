@@ -910,6 +910,16 @@ td.ta .btn+.btn{margin-left:.25rem;}
 }
 .inv-item:hover{background:var(--surface2);}
 .inv-item:hover .inv-item-actions{opacity:1;}
+/* Highlight pulse used by global lookup ('/' search) when navigating
+   to a specific inventory row. Brief amber glow so the target row
+   reads as "this is the item you searched for" without permanently
+   altering the row's appearance. */
+.inv-item.inv-row-flash{ animation: inv-row-flash 1.4s ease-out; }
+@keyframes inv-row-flash{
+  0%   { background: rgba(245,166,35,.35); }
+  60%  { background: rgba(245,166,35,.18); }
+  100% { background: transparent; }
+}
 .inv-item-dot{
   width:10px;height:10px;border-radius:50%;flex-shrink:0;
   box-shadow:0 0 0 2px var(--surface);
@@ -1598,6 +1608,83 @@ td.ta .btn+.btn{margin-left:.25rem;}
 .lp-pick-empty{
   padding:1.5rem;text-align:center;
   color:var(--text3);font-size:.85rem;font-style:italic;
+}
+
+
+/* ── GLOBAL LOOKUP — "where is item X?" ── */
+.gl-search{
+  width:100%;padding:.7rem .8rem;font-size:1rem;
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;
+  margin-bottom:.7rem;
+  font-family:inherit;
+}
+.gl-search:focus{
+  outline:none;border-color:var(--accent);
+  background:var(--surface2);
+}
+.gl-results{
+  max-height:60vh;overflow-y:auto;
+  border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);
+}
+.gl-section-head{
+  position:sticky;top:0;z-index:1;
+  padding:.5rem .8rem;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  font-size:.72rem;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text3);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.gl-section-head .gl-section-n{
+  font-family:var(--mono);font-size:.7rem;
+  padding:.1rem .4rem;background:var(--surface2);
+  color:var(--text2);border-radius:8px;
+}
+.gl-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem .8rem;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  font-size:.85rem;
+}
+.gl-row:last-child{ border-bottom:none; }
+.gl-row:hover{ background:var(--surface); }
+.gl-row-status{
+  font-size:.65rem;font-weight:600;letter-spacing:.04em;
+  padding:.15rem .4rem;border-radius:3px;
+  font-family:var(--mono);text-transform:uppercase;
+  flex-shrink:0;min-width:36px;text-align:center;
+}
+.gl-row-status.out{ background:rgba(239,68,68,.18); color:var(--red); }
+.gl-row-status.in{ background:rgba(34,197,94,.18); color:var(--green); }
+.gl-row-status.inv{ background:var(--surface);color:var(--text3); }
+.gl-row-name{
+  flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text);font-weight:500;
+}
+.gl-row-id{
+  font-family:var(--mono);font-size:.72rem;color:var(--text2);
+  padding:.1rem .4rem;background:var(--surface);border-radius:3px;
+  flex-shrink:0;
+}
+.gl-row-loc{
+  font-size:.75rem;color:var(--text3);
+  flex-basis:100%;padding-left:48px;margin-top:.15rem;
+}
+.gl-row-loc strong{ color:var(--text2);font-weight:500; }
+.gl-empty{
+  padding:2rem 1rem;text-align:center;
+  color:var(--text3);font-size:.85rem;font-style:italic;
+}
+.gl-empty .gl-empty-hint{
+  font-style:normal;font-size:.78rem;margin-top:.5rem;color:var(--text3);
+}
+.gl-empty .gl-empty-hint kbd{
+  font-family:var(--mono);font-size:.7rem;
+  padding:.1rem .35rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:3px;
+  color:var(--text2);
 }
 
 
@@ -3653,6 +3740,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   <div class="modal-title">Keyboard Shortcuts</div>
   <div class="shortcut-grid">
     <span class="sc-key">?</span>      <span class="sc-desc">Show this cheatsheet</span>
+    <span class="sc-key">/</span>      <span class="sc-desc">Find any item by name or asset ID</span>
     <span class="sc-key">Esc</span>    <span class="sc-desc">Close modal / drawer</span>
     <span class="sc-key">⌘ P</span>   <span class="sc-desc">Print current day</span>
     <span class="sc-key">N</span>      <span class="sc-desc">New job</span>
@@ -3668,6 +3756,23 @@ td.ta .btn+.btn{margin-left:.25rem;}
   </div>
   <div class="modal-foot" style="margin-top:1.2rem">
     <button class="btn btn-accent" onclick="closeModal('m-shortcuts')">Got it</button>
+  </div>
+</div></div>
+
+<!-- ── GLOBAL LOOKUP — "Where is item X?" ─────────────────────
+     Search by name / asset ID / category across all gear and inventory.
+     Triggered by the `/` shortcut or a button on the Home dashboard.   -->
+<div class="overlay" id="m-global-lookup" style="display:none"><div class="modal" style="max-width:640px">
+  <div class="modal-title">Find an item</div>
+  <div style="font-size:.8rem;color:var(--text3);margin-bottom:.7rem">
+    Search any inventory item or gear on a job. Click a result to jump to it.
+  </div>
+  <input type="text" id="gl-search-input" class="gl-search"
+         placeholder="Type a name, asset ID, or category…"
+         oninput="renderGlobalLookup()" autocomplete="off">
+  <div id="gl-results-host" class="gl-results"></div>
+  <div class="modal-foot" style="margin-top:1rem;display:flex;justify-content:flex-end">
+    <button class="btn btn-ghost" onclick="closeModal('m-global-lookup')">Close</button>
   </div>
 </div></div>
 
@@ -4092,7 +4197,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.19.8';
+const GRIP_VERSION = '1.20.0';
 const GRIP_BUILD_DATE = '2026-04-25';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -5408,7 +5513,7 @@ function renderInventoryView() {
     if(item.assetId) subChips.push(`<span class="inv-item-sub-chip">${esc(item.assetId)}</span>`);
     if(invCatFilter==='All') subChips.push(`<span class="inv-item-sub-chip" style="color:var(--c-${catClass})">${esc(item.cat||'Other')}</span>`);
     const notesText = item.notes ? esc(item.notes) : '';
-    return `<div class="inv-item">
+    return `<div class="inv-item" data-inv-id="${item.id}">
       <span class="inv-item-dot" style="background:var(--c-${catClass})"></span>
       <div class="inv-item-info">
         <div class="inv-item-name">${esc(item.name)}${condBadge}</div>
@@ -5784,6 +5889,216 @@ function renderMain(){
 }
 
 function setGearFilter(f,el){gearFilter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderGearContent();}
+
+
+// ════════════════════════════════════════════════════════════
+//  GLOBAL LOOKUP — "Where is item X?"
+// ════════════════════════════════════════════════════════════
+// Producer-asks-where-the-Sachtler-is workflow. A modal-as-search
+// box that scans across BOTH inventory and per-day gear rows in one
+// query, returning matches grouped by current status (OUT first, IN
+// second, master-inventory-only third). Click a row to jump to the
+// job/day where it lives, or to the inventory view filtered to it.
+//
+// Implementation notes:
+// - Pure derived view over the data already in S.* — no new API.
+// - Gear matches reflect the SPECIFIC instance on a given day, since
+//   the same inventory item can appear on multiple jobs at once. We
+//   collapse by inventory_id only to avoid showing the same row
+//   twice for items linked back via inventoryId.
+// - "Most recent" location for OUT items is determined by walking
+//   gear rows across all jobs/days and picking the latest one whose
+//   day has the most recent date. Untyped (no date) days come last.
+
+function openGlobalLookup(prefill){
+  const inp = document.getElementById('gl-search-input');
+  if(inp) inp.value = prefill || '';
+  renderGlobalLookup();
+  openModal('m-global-lookup');
+  // openModal auto-focuses the first input, but we want the caret at
+  // the end if there was a prefill (e.g. Bluetooth scanner pre-typed)
+  setTimeout(() => {
+    if(inp){
+      inp.focus();
+      const v = inp.value;
+      try { inp.setSelectionRange(v.length, v.length); } catch(e){}
+    }
+  }, 100);
+}
+
+// Build a list of all gear rows annotated with their location (job,
+// day). One pass over S.jobs; cheap even with thousands of items.
+function _allGearWithLocation(){
+  const out = [];
+  (S.jobs||[]).forEach(j => {
+    (j.days||[]).forEach(d => {
+      (d.gear||[]).forEach(g => {
+        out.push({
+          gear: g,
+          jobId: j.id, jobName: j.name,
+          dayId: d.id, dayLabel: d.label, dayDate: d.date || '',
+        });
+      });
+    });
+  });
+  return out;
+}
+
+// Sort key for "most recent" gear instance: most recent shoot date
+// first, undated days last.
+function _gearRecencyKey(entry){
+  // Empty date sorts AFTER any real date. Use ZZZ as a sentinel so
+  // it ends up at the bottom under desc sort. Localized comparison
+  // works because YYYY-MM-DD strings are lexicographically sortable.
+  return entry.dayDate || 'ZZZZ';
+}
+
+function renderGlobalLookup(){
+  const host = document.getElementById('gl-results-host');
+  if(!host) return;
+  const q = (document.getElementById('gl-search-input')?.value || '').trim().toLowerCase();
+  const escAttr = s => String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Empty state — show usage hint
+  if(!q){
+    host.innerHTML = `<div class="gl-empty">
+      Start typing to search.
+      <div class="gl-empty-hint">Tip: a USB/Bluetooth scanner can paste an asset ID here directly.</div>
+    </div>`;
+    return;
+  }
+
+  // 1. Match against gear rows on jobs (instance-level — an item can
+  //    be on multiple days, we want each instance's location).
+  const allGear = _allGearWithLocation();
+  const gearMatches = allGear.filter(e => {
+    const g = e.gear;
+    return (g.name||'').toLowerCase().includes(q)
+        || (g.assetId||'').toLowerCase().includes(q)
+        || (g.cat||'').toLowerCase().includes(q);
+  });
+
+  // 2. Match against master inventory.
+  const invMatches = (S.inventory||[]).filter(i =>
+       (i.name||'').toLowerCase().includes(q)
+    || (i.assetId||'').toLowerCase().includes(q)
+    || (i.cat||'').toLowerCase().includes(q)
+  );
+
+  // 3. Build inventory-only set: items in master inventory whose
+  //    asset ID isn't currently appearing on any gear row. These are
+  //    items "in storage / on the shelf."
+  const gearAssetIds = new Set(allGear
+    .map(e => (e.gear.assetId||'').toUpperCase())
+    .filter(a => a));
+  const inventoryOnly = invMatches.filter(i =>
+    !i.assetId || !gearAssetIds.has((i.assetId||'').toUpperCase())
+  );
+
+  // 4. Group gear matches by status (out vs in), with most-recent
+  //    instance per asset_id taking priority. The same asset ID
+  //    could appear on multiple days; we deduplicate by asset ID +
+  //    status so a result list of ten lines for the same item turns
+  //    into one entry per (item, status) pair.
+  const seen = new Map();   // key: assetId|status, value: most-recent entry
+  gearMatches.forEach(e => {
+    const aid = (e.gear.assetId||'').toUpperCase() || '__'+e.gear.id;  // fallback for un-asseted gear
+    const key = aid + '|' + e.gear.status;
+    const prev = seen.get(key);
+    if(!prev || _gearRecencyKey(e) > _gearRecencyKey(prev)){
+      seen.set(key, e);
+    }
+  });
+  const dedupedGear = [...seen.values()];
+  const outRows = dedupedGear.filter(e => e.gear.status === 'out');
+  const inRows  = dedupedGear.filter(e => e.gear.status === 'in');
+
+  // Sort each group by recency (most recent first).
+  const recencySort = (a,b) => _gearRecencyKey(b).localeCompare(_gearRecencyKey(a));
+  outRows.sort(recencySort);
+  inRows.sort(recencySort);
+
+  // No results at all
+  if(!outRows.length && !inRows.length && !inventoryOnly.length){
+    host.innerHTML = `<div class="gl-empty">
+      No matches for “${escAttr(q)}”.
+      <div class="gl-empty-hint">Search runs over inventory items and per-day gear.</div>
+    </div>`;
+    return;
+  }
+
+  // Renderers ──────────────────────────────────────────────
+  const renderGearRow = (e) => {
+    const g = e.gear;
+    const dateLabel = e.dayDate
+      ? new Date(e.dayDate+'T00:00:00').toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})
+      : 'undated';
+    return `<div class="gl-row" onclick="navigateToGearLocation('${e.jobId}','${e.dayId}');closeModal('m-global-lookup')">
+      <span class="gl-row-status ${g.status}">${g.status==='out'?'OUT':'IN'}</span>
+      <span class="gl-row-name">${escHtml(g.name||'')}</span>
+      ${g.assetId?`<span class="gl-row-id">${escHtml(g.assetId)}</span>`:''}
+      <div class="gl-row-loc"><strong>${escHtml(e.jobName)}</strong> · ${escHtml(e.dayLabel)} · ${dateLabel}</div>
+    </div>`;
+  };
+  const renderInvRow = (i) => {
+    return `<div class="gl-row" onclick="navigateToInventoryItem('${i.id}','${escAttr(i.cat||'All')}');closeModal('m-global-lookup')">
+      <span class="gl-row-status inv">INV</span>
+      <span class="gl-row-name">${escHtml(i.name||'')}</span>
+      ${i.assetId?`<span class="gl-row-id">${escHtml(i.assetId)}</span>`:''}
+      <div class="gl-row-loc">In master inventory · ${escHtml(i.cat||'Other')} · qty ${i.qty||1}</div>
+    </div>`;
+  };
+
+  let html = '';
+  if(outRows.length){
+    html += `<div class="gl-section-head">
+      <span>Currently checked out</span>
+      <span class="gl-section-n">${outRows.length}</span>
+    </div>${outRows.map(renderGearRow).join('')}`;
+  }
+  if(inRows.length){
+    html += `<div class="gl-section-head">
+      <span>Checked in (on a job)</span>
+      <span class="gl-section-n">${inRows.length}</span>
+    </div>${inRows.map(renderGearRow).join('')}`;
+  }
+  if(inventoryOnly.length){
+    html += `<div class="gl-section-head">
+      <span>In master inventory</span>
+      <span class="gl-section-n">${inventoryOnly.length}</span>
+    </div>${inventoryOnly.map(renderInvRow).join('')}`;
+  }
+  host.innerHTML = html;
+}
+
+// Navigate to a specific gear row's location: select the job, then
+// the day. selectJob auto-picks the first day, so we have to set
+// the day explicitly afterward.
+async function navigateToGearLocation(jobId, dayId){
+  await selectJob(jobId);
+  if(dayId) selectDay(dayId);
+  switchView('jobs');
+}
+
+// Navigate to inventory view filtered to the item's category, then
+// scroll to the item if possible.
+function navigateToInventoryItem(itemId, cat){
+  switchView('inventory');
+  // setInvCat exists; use 'All' as a safe default
+  if(typeof setInvCat === 'function'){
+    setInvCat(cat || 'All');
+  }
+  // After the view renders, try to scroll the item into view
+  setTimeout(() => {
+    const row = document.querySelector(`[data-inv-id="${itemId}"]`);
+    if(row && row.scrollIntoView){
+      row.scrollIntoView({behavior:'smooth', block:'center'});
+      row.classList.add('inv-row-flash');
+      setTimeout(() => row.classList.remove('inv-row-flash'), 1500);
+    }
+  }, 200);
+}
 
 
 // ════════════════════════════════════════════════════════════
@@ -8835,6 +9150,7 @@ document.addEventListener('keydown',e=>{
 
   if(!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
     if(e.key==='?'){openModal('m-shortcuts');}
+    if(e.key==='/'){e.preventDefault();openGlobalLookup();}
     if(e.key==='n'||e.key==='N'){openNewJobModal();}
     if(e.key==='d'||e.key==='D'){if(activeJob())openModal('m-new-day');}
     if(e.key==='g'||e.key==='G'){const s=document.getElementById('gsearch');if(s){s.focus();s.select();e.preventDefault();}}
@@ -9165,6 +9481,7 @@ function renderHome() {
     </div>
     ${canEdit ? `<div class="home-header-actions">
       <button class="home-action-btn primary" onclick="openNewJobModal();switchView('jobs')"><span class="home-action-icon">＋</span> New Job</button>
+      <button class="home-action-btn" onclick="openGlobalLookup()" title="Search any item by name or asset ID (/)"><span class="home-action-icon">🔍</span> Find Item</button>
       <button class="home-action-btn" onclick="switchView('calendar')"><span class="home-action-icon">📅</span> Calendar</button>
     </div>` : ''}
   </div>`;
