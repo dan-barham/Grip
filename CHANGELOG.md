@@ -2,6 +2,10 @@
 
 > Maintained by `grip-bump-version.py`. Format: [version] — date _level_
 
+## [2.0.0] - 2026-04-25  _major_
+
+- Redesigned Jobs flow: All Jobs grid + Job Overview-first navigation
+
 ## [1.22.0] - 2026-04-25  _minor_
 
 - Add booking conflict detection (overlap warnings on bookings)

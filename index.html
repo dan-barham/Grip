@@ -526,6 +526,202 @@ header{
 /* Inventory sort/search bar — see detailed rules further below */
 .rail-label{font-size:.82rem;font-weight:400;color:var(--text3);} /* legacy — superseded by .rail-head-label */
 .rail-body{flex:1;overflow-y:auto;}
+
+
+/* ── REDESIGNED JOBS FLOW (Phase 1) ─────────────────────────
+   Hides the three-column layout in favour of a single-column,
+   wizard-style flow: All Jobs grid → Job Overview → Day Detail.
+   The rails (#job-rail, #day-rail) and resize handles are hidden;
+   the main panel takes the full width.                          */
+#view-jobs.solo-job-view #job-rail,
+#view-jobs.solo-job-view #day-rail,
+#view-jobs.solo-job-view #rh-job,
+#view-jobs.solo-job-view #rh-day{
+  display:none !important;
+}
+#view-jobs.solo-job-view .main-panel{
+  width:100%;
+}
+/* Mobile picker drawers also hidden on the new layout — they were
+   the touch-friendly equivalent of the rails, no longer needed. */
+#view-jobs.solo-job-view #m-mobile-picker,
+#view-jobs.solo-job-view #m-mobile-day-drawer{
+  display:none !important;
+}
+
+/* ── Breadcrumb / page header — shows current location in the
+       hierarchy and lets the user step back. */
+.job-bread{
+  display:flex;align-items:center;gap:.4rem;
+  padding:.7rem 1.2rem;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  font-size:.85rem;color:var(--text3);
+  flex-shrink:0;flex-wrap:wrap;
+}
+.job-bread-link{
+  background:none;border:none;cursor:pointer;
+  color:var(--text2);font:inherit;
+  padding:.2rem .45rem;border-radius:4px;
+  transition:background .1s, color .1s;
+}
+.job-bread-link:hover{ background:var(--surface2);color:var(--accent); }
+.job-bread-sep{ color:var(--text3);user-select:none; }
+.job-bread-current{
+  color:var(--text);font-weight:600;
+  padding:.2rem .45rem;
+}
+.job-bread-spacer{ flex:1; }
+.job-bread-actions{ display:flex;gap:.4rem;align-items:center; }
+
+/* ── ALL JOBS GRID — landing view when no job selected. */
+.aj-shell{
+  flex:1;overflow-y:auto;padding:1.4rem 1.6rem 4rem;
+}
+.aj-shell-inner{ max-width:1200px;margin:0 auto; }
+.aj-head{
+  display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;
+}
+.aj-head-title{
+  font-size:1.3rem;font-weight:650;color:var(--text);
+  letter-spacing:-.01em;
+}
+.aj-head-count{
+  font-size:.78rem;color:var(--text3);
+  background:var(--surface2);border-radius:10px;padding:.15rem .55rem;
+}
+.aj-head-spacer{ flex:1; }
+.aj-search{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font:inherit;font-size:.88rem;
+  padding:.45rem .7rem;border-radius:6px;width:240px;
+}
+.aj-search:focus{ outline:none;border-color:var(--accent);background:var(--surface3); }
+.aj-sort-bar{
+  display:flex;gap:.3rem;align-items:center;
+  font-size:.74rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;
+  margin-left:.5rem;
+}
+.aj-sort-btn{
+  background:none;border:1px solid var(--border);border-radius:4px;
+  color:var(--text3);font:inherit;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+  padding:.3rem .55rem;cursor:pointer;
+  transition:all .1s;
+}
+.aj-sort-btn.active{ color:var(--accent);border-color:var(--accent);background:var(--accent-dim); }
+.aj-sort-btn:hover:not(.active){ color:var(--text);border-color:var(--border2); }
+
+.aj-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:.9rem;
+}
+.aj-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:1rem 1.1rem;
+  cursor:pointer;
+  transition:border-color .12s, transform .08s, box-shadow .12s;
+  display:flex;flex-direction:column;gap:.45rem;
+  position:relative;
+}
+.aj-card:hover{
+  border-color:var(--accent);
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(0,0,0,.18);
+}
+.aj-card.archived{
+  opacity:.6;background:var(--surface2);
+}
+.aj-card-name{
+  font-size:1rem;font-weight:650;color:var(--text);
+  letter-spacing:-.01em;line-height:1.3;
+  display:flex;align-items:center;gap:.4rem;
+}
+.aj-card-arch-pill{
+  font-size:.62rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text3);background:var(--surface3);
+  padding:.1rem .35rem;border-radius:3px;
+}
+.aj-card-meta{
+  font-size:.8rem;color:var(--text3);
+  display:flex;flex-wrap:wrap;gap:.3rem .7rem;
+}
+.aj-card-meta-row strong{ color:var(--text2);font-weight:500; }
+.aj-card-stats{
+  display:flex;gap:.6rem;margin-top:.3rem;
+  font-size:.78rem;color:var(--text2);
+  align-items:center;flex-wrap:wrap;
+}
+.aj-card-stat{
+  background:var(--surface2);border-radius:5px;padding:.18rem .5rem;
+  font-family:var(--mono);font-size:.74rem;
+}
+.aj-card-stat.out{ color:var(--red);background:rgba(239,68,68,.12); }
+.aj-card-stat.live{ color:var(--green);background:rgba(34,197,94,.12); }
+.aj-card-empty{
+  padding:3rem 1rem;text-align:center;color:var(--text3);
+  background:var(--surface2);border-radius:8px;border:1px dashed var(--border);
+  grid-column:1/-1;
+}
+.aj-card-empty .aj-empty-title{
+  font-size:1rem;font-weight:600;color:var(--text2);margin-bottom:.4rem;
+}
+
+/* ── JOB SHELL — wraps the in-job pages (overview / day detail) so
+       the existing renderJobDashboard + gear panels get a max-width
+       and centred padding without modifying their internals.    */
+.job-shell{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+.job-shell-body{
+  flex:1;overflow-y:auto;
+}
+
+/* ── EMPTY-STATE CTAs that lead the wizard sequence forward.
+       Pure presentational — the JS renders them where appropriate. */
+.wiz-cta{
+  margin:1.4rem auto;max-width:540px;
+  background:var(--surface);border:1px dashed var(--border2);
+  border-radius:10px;padding:1.6rem 1.4rem;
+  text-align:center;
+}
+.wiz-cta-icon{
+  font-size:2rem;margin-bottom:.4rem;
+}
+.wiz-cta-title{
+  font-size:1.05rem;font-weight:600;color:var(--text);
+  margin-bottom:.3rem;
+}
+.wiz-cta-desc{
+  font-size:.85rem;color:var(--text3);
+  margin-bottom:.9rem;line-height:1.5;
+}
+.wiz-cta-actions{ display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap; }
+
+/* ── DAY SWITCHER — replaces the days rail when on a day detail.
+       Compact dropdown + inline tabs for quick switching. */
+.day-switcher{
+  display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;
+  padding:.5rem 1.2rem;background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-size:.82rem;
+}
+.day-switcher-label{
+  color:var(--text3);font-size:.72rem;
+  text-transform:uppercase;letter-spacing:.06em;
+  margin-right:.3rem;
+}
+.day-tab-pill{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);font:inherit;font-size:.78rem;
+  padding:.3rem .6rem;border-radius:4px;cursor:pointer;
+  transition:all .1s;white-space:nowrap;
+}
+.day-tab-pill.active{
+  border-color:var(--accent);color:var(--accent);background:var(--accent-dim);
+}
+.day-tab-pill:hover:not(.active){ background:var(--surface3);color:var(--text); }
+.day-tab-pill.add{ color:var(--text3);border-style:dashed; }
+.day-tab-pill.add:hover{ color:var(--accent);border-color:var(--accent); }
 .rail-item{
   padding:.7rem .85rem;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s,border-left-color .1s;position:relative;
@@ -3440,7 +3636,7 @@ td.ta .btn+.btn{margin-left:.25rem;}
   <div class="view active" id="view-home">
     <div id="home-content"></div>
   </div>
-  <div class="view" id="view-jobs">
+  <div class="view solo-job-view" id="view-jobs">
     <div class="rail" id="job-rail" style="width:210px">
       <div class="rail-head">
         <span class="rail-head-label">Jobs</span>
@@ -4400,7 +4596,7 @@ function renderViewFooter() {
   </div>`;
 }
 
-const GRIP_VERSION = '1.22.0';
+const GRIP_VERSION = '2.0.0';
 const GRIP_BUILD_DATE = '2026-04-25';
 
 let S = { jobs:[], inventory:[], log:[], users:[], contacts:[], companies:[], jobTemplates:[], borrowRequests:[], borrowRequestsError:null };
@@ -4906,11 +5102,178 @@ async function createJob() {
   activeJobId = r.id; activeDayId = null; selectedIds.clear();
   await loadAll();
 }
+// ── REDESIGNED FLOW (Phase 1) ─────────────────────────────
+// goToAllJobs: clear job + day selection so the main panel falls
+// back to the All Jobs grid. Used by the breadcrumb's "← All Jobs"
+// link from any in-job page. Also wipes the right-side sidebar so
+// it doesn't briefly flash stale per-job info during the render.
+function goToAllJobs(){
+  activeJobId = null;
+  activeDayId = null;
+  dashboardMode = false;
+  selectedIds.clear();
+  closeAllDrawers();
+  switchView('jobs');
+  renderAll();
+  _navPush();
+}
+
+// Sort key for the All Jobs grid. Currently 'recent' = most-recently-
+// scheduled shoot day, with undated jobs sinking to the bottom.
+let _allJobsSort = 'recent';
+let _allJobsArchivedShown = false;
+function setAllJobsSort(s){
+  _allJobsSort = s;
+  renderAllJobsGrid();
+}
+function toggleAllJobsArchived(){
+  _allJobsArchivedShown = !_allJobsArchivedShown;
+  renderAllJobsGrid();
+}
+
+// Render the All Jobs grid into #main-panel. Card per job with name,
+// production co, director, day count, date range or 'no shoots
+// scheduled', and quick stats (out items, undated days). Click a
+// card → selectJob to navigate into that job's overview.
+function renderAllJobsGrid(){
+  const panel = document.getElementById('main-panel');
+  if(!panel) return;
+  // Reset the panel completely — we own its content here. The old
+  // gear-content / placeholder / etc. are removed so they don't
+  // leak through.
+  panel.innerHTML = '';
+
+  const today = new Date().toISOString().split('T')[0];
+  const q = (document.getElementById('aj-search')?.value || '').toLowerCase().trim();
+
+  // Filter
+  let jobs = (S.jobs || []).slice();
+  if(!_allJobsArchivedShown) jobs = jobs.filter(j => !j.archived);
+  if(q) jobs = jobs.filter(j =>
+       (j.name||'').toLowerCase().includes(q)
+    || (j.co||'').toLowerCase().includes(q)
+    || (j.director||'').toLowerCase().includes(q)
+    || (j.notes||'').toLowerCase().includes(q)
+  );
+
+  // Sort
+  const datedDays = j => (j.days||[]).filter(d => d.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const earliestDate = j => { const dd = datedDays(j); return dd.length ? dd[0].date : 'ZZZZ'; };
+  const latestDate   = j => { const dd = datedDays(j); return dd.length ? dd[dd.length-1].date : ''; };
+  const sortKeys = {
+    recent: (a,b) => latestDate(b).localeCompare(latestDate(a)) || (a.name||'').localeCompare(b.name||''),
+    name:   (a,b) => (a.name||'').localeCompare(b.name||''),
+    days:   (a,b) => (b.days?.length||0) - (a.days?.length||0),
+    upcoming:(a,b) => earliestDate(a).localeCompare(earliestDate(b)) || (a.name||'').localeCompare(b.name||''),
+  };
+  jobs.sort(sortKeys[_allJobsSort] || sortKeys.recent);
+
+  // Header (search + sort + new)
+  const archivedBtnLabel = _allJobsArchivedShown ? 'Hide archived' : 'Show archived';
+  const archivedTotal = (S.jobs||[]).filter(j => j.archived).length;
+  const totalLabel = _allJobsArchivedShown
+    ? `${jobs.length} of ${(S.jobs||[]).length}`
+    : `${jobs.length} active`;
+  const archivedHint = !_allJobsArchivedShown && archivedTotal
+    ? `· ${archivedTotal} archived`
+    : '';
+
+  const headHtml = `<div class="aj-shell">
+    <div class="aj-shell-inner">
+      <div class="aj-head">
+        <div class="aj-head-title">All Jobs</div>
+        <span class="aj-head-count">${totalLabel} ${archivedHint}</span>
+        <div class="aj-head-spacer"></div>
+        <input id="aj-search" class="aj-search" placeholder="Search jobs, company, director…"
+               value="${escHtml(q)}" oninput="renderAllJobsGrid()" autocomplete="off">
+        <div class="aj-sort-bar">
+          <button class="aj-sort-btn ${_allJobsSort==='recent'?'active':''}"   onclick="setAllJobsSort('recent')">Recent</button>
+          <button class="aj-sort-btn ${_allJobsSort==='upcoming'?'active':''}" onclick="setAllJobsSort('upcoming')">Upcoming</button>
+          <button class="aj-sort-btn ${_allJobsSort==='name'?'active':''}"     onclick="setAllJobsSort('name')">Name</button>
+          <button class="aj-sort-btn ${_allJobsSort==='days'?'active':''}"     onclick="setAllJobsSort('days')">Days</button>
+        </div>
+        ${archivedTotal ? `<button class="aj-sort-btn" onclick="toggleAllJobsArchived()" title="${archivedBtnLabel}">${_allJobsArchivedShown?'Hide':'Show'} archived</button>` : ''}
+        <button class="btn btn-accent btn-sm" onclick="openNewJobModal()">+ New Job</button>
+      </div>`;
+
+  // Cards
+  let cardsHtml = '<div class="aj-grid">';
+  if(!jobs.length){
+    if(q){
+      cardsHtml += `<div class="aj-card-empty">
+        <div class="aj-empty-title">No matches</div>
+        <div>No jobs match "${escHtml(q)}".</div>
+      </div>`;
+    } else if(!(S.jobs||[]).length){
+      cardsHtml += `<div class="aj-card-empty">
+        <div class="aj-empty-title">No jobs yet</div>
+        <div style="margin-bottom:.9rem">Create your first production to get started.</div>
+        <button class="btn btn-accent" onclick="openNewJobModal()">+ New Job</button>
+      </div>`;
+    } else {
+      cardsHtml += `<div class="aj-card-empty">
+        <div class="aj-empty-title">No active jobs</div>
+        <div style="margin-bottom:.9rem">All your jobs are archived.</div>
+        <button class="btn btn-accent btn-sm" onclick="toggleAllJobsArchived()">Show archived</button>
+      </div>`;
+    }
+  } else {
+    jobs.forEach(j => {
+      const dd = datedDays(j);
+      const dayCount = (j.days||[]).length;
+      const undated = (j.days||[]).filter(d => !d.date).length;
+      const dateRange = dd.length === 0
+        ? '<em style="color:var(--text3)">No shoots scheduled</em>'
+        : (dd.length === 1 || dd[0].date === dd[dd.length-1].date)
+          ? fmtDate(dd[0].date)
+          : `${fmtDate(dd[0].date)} → ${fmtDate(dd[dd.length-1].date)}`;
+      const allGear = (j.days||[]).flatMap(d => d.gear||[]);
+      const outCount = allGear.filter(g => g.status === 'out').length;
+      const isLive = dd.some(d => d.date === today);
+      const archPill = j.archived ? '<span class="aj-card-arch-pill">Archived</span>' : '';
+      const liveBadge = isLive ? '<span class="aj-card-stat live">● Today</span>' : '';
+      const outBadge  = outCount ? `<span class="aj-card-stat out">⬆ ${outCount} out</span>` : '';
+      const dayBadge  = `<span class="aj-card-stat">${dayCount} day${dayCount!==1?'s':''}${undated?` · ${undated} undated`:''}</span>`;
+
+      cardsHtml += `<div class="aj-card ${j.archived?'archived':''}" onclick="selectJob('${j.id}')">
+        <div class="aj-card-name">${escHtml(j.name||'(unnamed)')} ${archPill}</div>
+        <div class="aj-card-meta">
+          ${j.co?`<span class="aj-card-meta-row"><strong>Co:</strong> ${escHtml(j.co)}</span>`:''}
+          ${j.director?`<span class="aj-card-meta-row"><strong>Dir:</strong> ${escHtml(j.director)}</span>`:''}
+        </div>
+        <div class="aj-card-meta">
+          <span class="aj-card-meta-row">${dateRange}</span>
+        </div>
+        <div class="aj-card-stats">
+          ${liveBadge}
+          ${dayBadge}
+          ${outBadge}
+        </div>
+      </div>`;
+    });
+  }
+  cardsHtml += '</div></div></div>';
+
+  panel.innerHTML = headHtml + cardsHtml;
+
+  // Right-side sidebar shouldn't show on the All Jobs view
+  const rp = document.getElementById('right-panel');
+  if(rp) rp.classList.add('rp-hidden');
+}
+
+
 async function selectJob(id) {
   activeJobId=id;
-  dashboardMode=false;
-  // Auto-select the first day (sorted by date, undated last)
+  // Land on the overview by default — the redesigned flow puts the
+  // job summary first, with days listed below. Users explicitly
+  // click a day tab to drill into a specific shoot day. (Old
+  // behaviour: jumped straight into the first dated day.)
+  dashboardMode = true;
   const j=S.jobs.find(j=>j.id===id);
+  // Still pick a sensible default day for the day-switcher state,
+  // so when the user does click into day-detail mode they land on
+  // the most-relevant day rather than nothing. Most-relevant = the
+  // earliest dated day, falling back to the first undated.
   if(j&&j.days.length){
     const sorted=[...j.days].sort((a,b)=>{
       if(!a.date&&!b.date) return 0;
@@ -5788,7 +6151,21 @@ function renderGearContent(){
   const grouped={};items.forEach(g=>{if(!grouped[g.cat])grouped[g.cat]=[];grouped[g.cat].push(g);});
   const tbody=document.getElementById('gear-tbody');
   if(tbody){
-    if(!items.length){tbody.innerHTML=`<tr><td colspan="5"><div class="empty">No items yet.<br>Use the Quick Add panel on the right, or pull from Inventory.</div></td></tr>`;}
+    if(!items.length){
+      // Wizard-style empty state — clear next step + actionable
+      // buttons. Quick Add input is already visible above the table
+      // (gsearch / gear-controls), so the primary "Add" buttons here
+      // mirror those affordances for a user who's never seen them.
+      tbody.innerHTML=`<tr><td colspan="5"><div class="wiz-cta" style="margin:1.2rem auto">
+        <div class="wiz-cta-icon">📦</div>
+        <div class="wiz-cta-title">No gear on this day yet</div>
+        <div class="wiz-cta-desc">Add equipment from your master inventory, or quick-add by typing in the search box above.</div>
+        <div class="wiz-cta-actions">
+          <button class="btn btn-accent" onclick="document.getElementById('gsearch')?.focus()">+ Quick add</button>
+          <button class="btn btn-ghost" onclick="switchView('inventory')">Browse inventory</button>
+        </div>
+      </div></td></tr>`;
+    }
     else{
       let html='';
       CATS.filter(c=>grouped[c]).forEach(cat=>{
@@ -5819,7 +6196,16 @@ function renderGearContent(){
   }
   const mob=document.getElementById('mob-gear-content');
   if(mob){
-    if(!items.length){mob.innerHTML='<div class="empty">No items yet.<br><br>Tap <strong style="color:var(--accent)">+</strong> to add gear, or browse Inventory.</div>';}
+    if(!items.length){
+      mob.innerHTML=`<div class="wiz-cta" style="margin:1rem">
+        <div class="wiz-cta-icon">📦</div>
+        <div class="wiz-cta-title">No gear yet</div>
+        <div class="wiz-cta-desc">Tap <strong style="color:var(--accent)">+</strong> to add gear, or browse the master inventory.</div>
+        <div class="wiz-cta-actions">
+          <button class="btn btn-ghost btn-sm" onclick="switchView('inventory')">Browse inventory</button>
+        </div>
+      </div>`;
+    }
     else{
       let html='';
       CATS.filter(c=>grouped[c]).forEach(cat=>{
@@ -5869,18 +6255,13 @@ function renderMain(){
   const rp=document.getElementById('right-panel');
 
   if(!j){
-    ph.style.display='flex';
-    const mobPh=ph.querySelector('.mob-content');
-    if(!mobPh){
-      const mp=document.createElement('div');mp.className='mob-content';
-      mp.innerHTML='<div style="margin-top:1rem;display:flex;flex-direction:column;gap:.6rem;align-items:center">'
-        +'<button class="btn btn-accent" onclick="openDrawer(&#39;drawer-jobs&#39;)">Select a Job</button>'
-        +'<button class="btn btn-ghost btn-sm" onclick="openNewJobModal()">+ New Job</button>'
-        +'</div>';
-      ph.appendChild(mp);
-    }
-    const gc=document.getElementById('gear-content');if(gc)gc.remove();
-    if(rp){rp.classList.add('rp-hidden');}return;
+    // No job selected — show the All Jobs grid (redesigned flow).
+    // ph is hidden because we own the panel content directly.
+    if(ph) ph.style.display='none';
+    const old=document.getElementById('gear-content');if(old)old.remove();
+    if(rp){rp.classList.add('rp-hidden');}
+    renderAllJobsGrid();
+    return;
   }
 
   // Job is selected — always show panel (even if no day selected yet)
@@ -5937,6 +6318,23 @@ function renderMain(){
     : `<span style="font-size:.8rem;color:var(--text3)">Select a day below</span>`;
 
   gc.innerHTML=`
+    <!-- Breadcrumb / page header (redesigned flow) — clickable
+         segments let the user step back from a day to the job
+         overview, or up to the All Jobs grid. -->
+    <div class="job-bread">
+      <button class="job-bread-link" onclick="goToAllJobs()" title="Back to all jobs">← All Jobs</button>
+      <span class="job-bread-sep">/</span>
+      ${dashboardMode || !d
+        ? `<span class="job-bread-current">${escHtml(j.name)}</span>`
+        : `<button class="job-bread-link" onclick="showJobDashboard()" title="Back to job overview">${escHtml(j.name)}</button>
+           <span class="job-bread-sep">/</span>
+           <span class="job-bread-current">${escHtml(d.label)}</span>`}
+      <span class="job-bread-spacer"></span>
+      <div class="job-bread-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openEditJob('${j.id}',{stopPropagation:()=>{}})" title="Edit job">✎ Edit</button>
+        ${j.archived ? '<span style="font-size:.7rem;color:var(--text3);background:var(--surface2);padding:.15rem .4rem;border-radius:3px">Archived</span>' : ''}
+      </div>
+    </div>
     <!-- Mobile top bar: job/day picker + actions -->
     <div class="mob-content mob-topbar">
       <div class="mob-topbar-main">
@@ -8341,6 +8739,20 @@ function renderJobDashboard(j){
 
   return `
     <div class="dash-scroll">
+
+      ${j.days.length === 0 ? `
+      <!-- Empty state — first-time wizard CTA. Shown ABOVE the
+           summary cards (which all read 0) so the user's eye lands
+           on the next action, not on a wall of zeros. -->
+      <div class="wiz-cta">
+        <div class="wiz-cta-icon">📅</div>
+        <div class="wiz-cta-title">Add your first shoot day</div>
+        <div class="wiz-cta-desc">A job in this app is built up day-by-day.<br>
+          Add at least one shoot day, then start adding gear to it.</div>
+        <div class="wiz-cta-actions">
+          <button class="btn btn-accent" onclick="openModal('m-new-day')">+ Add Shoot Day</button>
+        </div>
+      </div>` : ''}
 
       <!-- ── Summary Card ─────────────────────────────────── -->
       <div class="dash-card">
